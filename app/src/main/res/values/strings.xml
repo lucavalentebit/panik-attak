@@ -1,0 +1,41 @@
+<resources>
+    <string name="puzzle_title">Puzzle della sequenza</string>
+    <string-array name="puzzle_types"><item>Matematica</item><item>Sequenza di colori</item><item>Trova l’intruso</item><item>Ordinamento</item><item>Tocca la sequenza</item></string-array>
+    <string-array name="color_names"><item>Rosso</item><item>Blu</item><item>Giallo</item><item>Verde</item><item>Viola</item><item>Arancione</item></string-array>
+    <string name="done">Fatto</string><string name="cancel">Annulla</string><string name="save">Salva</string>
+    <string name="start_time">Inizio</string><string name="end_time">Fine</string><string name="first_alarm">Prima sveglia</string>
+    <string name="at_time">alle %1$s</string><string name="every_minutes">ogni %1$d′</string>
+    <string name="interval_mode">Intervallo</string><string name="fixed_mode">Fisso</string><string name="interval_minutes">Intervallo (minuti)</string>
+    <string name="panic_interval">Il Panic Mode richiede un intervallo.</string>
+    <string name="invalid_fixed">Orario fisso fuori dalla fase: controlla tutti i richiami fissi. L’inizio è incluso, la fine esclusa.</string>
+    <string name="invalid_duration">Ogni fase deve durare da 1 a 120 minuti. Le fasi restano consecutive.</string>
+    <string name="phase_times_hint">Gli orari delle fasi successive si aggiornano insieme. La durata massima di ciascuna fase è 120 minuti.</string>
+    <string name="escalating">Difficoltà crescente</string><string name="escalating_hint">Facoltativa: aumenta la difficoltà dopo i richiami ignorati. Si azzera a ogni nuova sequenza.</string>
+    <string name="puzzle_explanation">La sfida semplice spegne il richiamo corrente. Per fermare la mattina, mettere in pausa o modificare una sequenza attiva serve la sfida difficile del tipo scelto.</string>
+    <string name="preview_puzzle">Prova il puzzle</string><string name="simple">Sfida semplice</string><string name="hard">Sfida difficile</string><string name="preview">Anteprima · nessuna sveglia modificata</string>
+    <string name="watch">Guarda e memorizza</string><string name="repeat_sequence">Ripeti la sequenza</string><string name="replay">Mostra di nuovo</string>
+    <string name="odd_hint">Tocca l’intruso</string><string name="order_numbers">Trascina dal più piccolo al più grande</string><string name="order_faces">Trascina dalla faccia più felice alla più triste</string>
+    <string name="order_accessibility">Puoi anche toccare due tessere per scambiarle.</string>
+    <string name="confirm">Conferma</string><string name="delete_digit">Cancella ultima cifra</string><string name="answer">Il risultato</string>
+    <string name="solve_hint">Risolvi con calma. Nessun timer.</string><string name="wrong">Riprova: la sfida resta uguale.</string><string name="correct">Esatto!</string>
+    <string name="tile">Casella %1$d</string><string name="symbol">Simbolo %1$d</string><string name="tile_value">Tessera %1$s</string>
+    <string name="alarm_hint">Risolvi il puzzle per spegnere questo richiamo.</string><string name="dismiss_current">Spegni solo questa ✓</string><string name="stop_morning">Ferma la mattina · prova più difficile</string>
+    <string name="gate_heading">DIMOSTRA CHE CI SEI</string><string name="pause_title">Metti in pausa la routine.</string><string name="edit_title">Modifica protetta.</string><string name="morning_title">Chiudi la mattina.</string>
+    <string name="pause_hint">Risolvi per mettere in pausa questa routine, anche nei prossimi giorni. Le altre routine restano attive.</string><string name="edit_hint">La sequenza è attiva. Risolvi per modificarla.</string><string name="morning_hint">Risolvi per fermare questa routine per la mattina in corso. Le altre routine e i prossimi giorni restano attivi.</string>
+    <string name="cancel_gate">Annulla · lascia le sveglie attive</string><string name="stale_alarm">La sveglia è cambiata. Riapri la prova dalla sveglia attuale.</string>
+    <string name="alarm_channel">Sveglie a schermo intero e puzzle per spegnerle</string><string name="alarm_notification">Tocca e risolvi il puzzle per spegnere.</string>
+    <string name="default_routine">La mia routine</string>
+    <string name="routines_title">Le tue routine</string><string name="routines_hint">Puoi attivarne più di una. Tocca un nome per configurarla.</string>
+    <string name="new_routine">＋ Nuova routine</string><string name="manage_routine">Gestisci routine</string>
+    <string name="routine_name">Nome della routine</string><string name="routine_name_hint">Es. Lavoro, Weekend, Turno di notte</string>
+    <string name="routine_name_error">Scegli un nome diverso, da 1 a 40 caratteri.</string>
+    <string name="rename_routine">Rinomina</string><string name="duplicate_routine">Duplica</string><string name="delete_routine">Elimina routine</string>
+    <string name="routine_copy">%1$s (copia)</string><string name="routine_created">Routine creata in pausa. Personalizzala e attivala quando vuoi.</string>
+    <string name="delete_routine_message">Eliminare “%1$s”? Se è attiva, prima dovrai risolvere il suo puzzle.</string>
+    <string name="last_routine">Mantieni almeno una routine. Puoi rinominarla o modificarla.</string>
+    <string name="routine_switch">Attiva o metti in pausa %1$s</string>
+    <string name="routine_active">Attiva</string><string name="routine_paused">In pausa</string>
+    <string name="routines_waiting">Altri richiami in attesa: %1$d</string>
+    <string name="routine_summary">%1$s · %2$s</string>
+    <string-array name="routine_days"><item>Lun</item><item>Mar</item><item>Mer</item><item>Gio</item><item>Ven</item><item>Sab</item><item>Dom</item></string-array>
+</resources>
