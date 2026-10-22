@@ -15,6 +15,19 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
+    TextView countdown;long countdownAt;boolean visible;
+    final Handler countdownHandler=new Handler(Looper.getMainLooper());
+    final Runnable countdownTick=()->updateCountdown();
+    static String remaining(long at,long now){long seconds=Math.max(0,(at-now+999)/1000);return String.format(Locale.ITALIAN,"%02d:%02d:%02d",seconds/3600,(seconds/60)%60,seconds%60);}
+    void updateCountdown(){
+        countdownHandler.removeCallbacks(countdownTick);if(countdown==null)return;
+        long now=System.currentTimeMillis();
+        if(countdownAt>0&&now>=countdownAt){render();return;}
+        countdown.setText(countdownAt>0?remaining(countdownAt,now):"--:--:--");
+        countdown.setContentDescription(countdownAt>0?"Tempo alla prossima sveglia: "+countdown.getText():"Routine in pausa");
+        if(visible&&countdownAt>0)countdownHandler.postDelayed(countdownTick,1000-now%1000);
+    }
+    @Override protected void onPause(){visible=false;countdownHandler.removeCallbacks(countdownTick);super.onPause();}
     Plan plan; int pendingEdit=-1;String pendingRoutine,pendingDelete;
     @Override public void onCreate(Bundle b){super.onCreate(b);
         getSupportFragmentManager().registerFragmentLifecycleCallbacks(new androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks(){
@@ -35,7 +48,7 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
             if(result==RESULT_OK&&id!=null&&Store.exists(this,id)&&!Store.prefs(this).getBoolean("ringing",false)){Store.select(this,id);openEditor(edit);}}
         if(request==82){String id=pendingDelete;pendingDelete=null;if(result==RESULT_OK&&id!=null){Store.delete(this,id);Scheduler.schedule(this);render();}}
     }
-    @Override public void onResume(){super.onResume();if(Store.prefs(this).getBoolean("ringing",false)){startActivity(new Intent(this,AlarmActivity.class));return;}Scheduler.schedule(this);render();}
+    @Override public void onResume(){super.onResume();visible=true;if(Store.prefs(this).getBoolean("ringing",false)){startActivity(new Intent(this,AlarmActivity.class));return;}Scheduler.schedule(this);render();}
     void activate(){activate(Store.selected(this));}
     void activate(String routine){
         if(!Store.exists(this,routine))return;
@@ -67,7 +80,8 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
         String dateLabel="LA TUA PRIMA SVEGLIA";
         if(Store.enabled(this)&&next>0){LocalDate date=Instant.ofEpochMilli(next).atZone(ZoneId.systemDefault()).toLocalDate();dateLabel=(date.equals(LocalDate.now())?"OGGI":date.equals(LocalDate.now().plusDays(1))?"DOMANI":date.format(DateTimeFormatter.ofPattern("EEEE d MMM",Locale.ITALIAN))).toUpperCase(Locale.ITALIAN);}
         hero.addView(Ui.bold(this,Store.name(this,selected),18,Ui.INK));Ui.space(hero,10);
-        TextView label=Ui.bold(this,dateLabel,11,Ui.INK);label.setLetterSpacing(.12f);hero.addView(label);Ui.space(hero,10);
+        TextView label=Ui.bold(this,dateLabel,11,Ui.INK);label.setLetterSpacing(.12f);LinearLayout timing=Ui.row(this);Ui.weighted(timing,label);
+        countdown=Ui.bold(this,"",14,Ui.INK);countdown.setGravity(Gravity.END);countdown.setPadding(Ui.dp(this,8),0,0,0);countdownAt=next;timing.addView(countdown);hero.addView(timing);updateCountdown();Ui.space(hero,10);
         LinearLayout clock=Ui.row(this);TextView time=Ui.text(this,Store.enabled(this)&&next>0?Store.time(next):String.format(Locale.ITALIAN,"%02d:%02d",plan.hour,plan.minute),66,Ui.INK);time.setLetterSpacing(-.05f);Ui.weighted(clock,time);TextView change=Ui.button(this,"Modifica ↗",0x25000000,Ui.INK,this::editTime);clock.addView(change);hero.addView(clock);Ui.space(hero,12);
         hero.addView(Ui.text(this,dayLabel()+"  ·  "+plan.count()+" richiami",13,Ui.INK));Ui.space(hero,21);
         hero.addView(Ui.button(this,Store.enabled(this)?"Metti in pausa · risolvi":"Attiva la sequenza  →",Ui.INK,Ui.LIME,()->{if(Store.enabled(this)){startActivity(ChallengeActivity.intent(this,ChallengeActivity.PAUSE));}else activate();}));page.addView(hero);Ui.space(page,26);
