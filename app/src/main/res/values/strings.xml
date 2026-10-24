@@ -1,4 +1,12 @@
 <resources>
+    <string name="sequence_channel">Sequenze in corso</string>
+    <string name="sequence_channel_description">Stato silenzioso della routine tra un richiamo e il successivo</string>
+    <string name="sequence_running">%1$s · Sequenza in corso</string>
+    <string name="sequences_running">%1$d sequenze in corso</string>
+    <string name="sequence_next">%1$s · Prossimo richiamo alle %2$s</string>
+    <string name="sequence_waiting_line">%1$s · prossimo richiamo alle %2$s</string>
+    <string name="sequence_generic">Sequenza in corso</string>
+    <string name="sequence_open">Apri Panik Attak per vedere la sequenza.</string>
     <string name="puzzle_title">Puzzle della sequenza</string>
     <string-array name="puzzle_types"><item>Matematica</item><item>Sequenza di colori</item><item>Trova l’intruso</item><item>Ordinamento</item><item>Tocca la sequenza</item></string-array>
     <string-array name="color_names"><item>Rosso</item><item>Blu</item><item>Giallo</item><item>Verde</item><item>Viola</item><item>Arancione</item></string-array>

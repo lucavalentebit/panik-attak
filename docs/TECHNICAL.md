@@ -78,3 +78,15 @@ I dialoghi usano conferme lime con testo scuro e annullamento con bordo sottile,
 Conto alla rovescia hh:mm:ss del prossimo richiamo della routine selezionata, nella riga sopra Modifica. Aggiornamento ogni secondo mentre la schermata è visibile; routine in pausa: --:--:--. Le ore non ricominciano da zero dopo 24 ore. Il timer usa i giorni e l’eventuale mattina saltata della routine.
 
 Build assembleDebug e lintDebug completati. Test CountdownSmoke compilato ma non eseguito sul dispositivo: Samsung scollegato al momento della verifica. Il test copre formato, durate oltre 24 ore, valori non negativi, aggiornamento dei secondi e pausa.
+
+## Versione 3.0 Alpha 2 — notifiche delle sequenze
+
+`SequenceStatus` conserva solo l’identità delle occorrenze effettivamente iniziate, il richiamo più recente e la fase. Non è uno storico statistico. La notifica 100 sul canale silenzioso `sequence_status` copre gli intervalli fra i richiami; la notifica 99 del servizio audio copre quelli ancora da risolvere. Le routine che suonano non vengono duplicate nel riepilogo silenzioso. Le altre routine restano visibili e indipendenti.
+
+Aggiornamenti su consegna, soluzione, stop, pausa, rinomina, ripianificazione, riavvio e cambi dell’orologio. Nessun servizio sempre acceso o aggiornamento ogni secondo per il solo stato. Lo stato persistito viene riconciliato con coda, routine abilitate e prossimi eventi della stessa occorrenza; una notifica in attesa ha anche una scadenza di sicurezza. L’ultimo richiamo non risolto continua a suonare oltre la fine prevista.
+
+Il tocco su una singola routine seleziona quella corrispondente, verificando che l’occorrenza esista ancora. Il riepilogo multiplo apre la schermata attuale delle routine. Nessuna azione della notifica interrompe direttamente un allarme. Il canale silenzioso offre una versione pubblica generica per lo schermo bloccato; le impostazioni Android di visibilità e autorizzazione restano determinanti.
+
+Entrambe le notifiche richiedono `FLAG_ONGOING_EVENT` e `FLAG_NO_CLEAR`. Android 14+ permette comunque di rimuoverle individualmente a telefono sbloccato; non vengono usati stili chiamata/media fittizi o cicli di ripubblicazione. La rimozione della scheda non cambia coda, puzzle o pianificazione. Fonte: [Android — non-dismissible notifications](https://developer.android.com/about/versions/14/behavior-changes-all#non-dismissable-notifications).
+
+`NotificationSmoke` verifica il ciclo di vita e la consegna reale. Se Samsung non espone il testo nella gerarchia accessibile, il parametro `-e swipeY <pixel>` permette un gesto sulla posizione prima verificata nella schermata `notification-before-swipe.png`; non usare coordinate non controllate. Il runner ripristina le preferenze, come `RoutineSmoke`. Risultati e limiti nel [rapporto Alpha 2](../TEST-REPORT-v3-notifications.md).

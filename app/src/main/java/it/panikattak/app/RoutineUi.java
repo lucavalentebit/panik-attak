@@ -34,7 +34,7 @@ final class RoutineUi {
         AlertDialog dialog=Ui.dialog(a).setTitle(mode==1?R.string.rename_routine:mode==2?R.string.duplicate_routine:R.string.new_routine).setView(content).setPositiveButton(R.string.save,null).setNegativeButton(R.string.cancel,null).create();
         dialog.setOnShowListener(v->{input.requestFocus();dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);Ui.styleDialog(dialog);dialog.getButton(-1).setOnClickListener(b->{
             String name=input.getText().toString().trim();if(name.isEmpty()||!Store.nameAvailable(a,name,mode==1?id:"")){error.setText(R.string.routine_name_error);return;}
-            if(mode==1)Store.rename(a,id,name);else{Store.create(a,name,mode==2);Toast.makeText(a,R.string.routine_created,Toast.LENGTH_LONG).show();}dialog.dismiss();a.render();
+            if(mode==1)Store.rename(a,id,name);else{Store.create(a,name,mode==2);Toast.makeText(a,R.string.routine_created,Toast.LENGTH_LONG).show();}dialog.dismiss();SequenceStatus.refresh(a);a.render();
         });});dialog.show();
     }
     static void delete(MainActivity a){

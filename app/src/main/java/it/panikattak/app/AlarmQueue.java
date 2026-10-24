@@ -35,6 +35,7 @@ final class AlarmQueue {
         if(!test)prefs.edit().putLong(Store.key(id,"ignoredStart"),start).putString(Store.key(id,"ignoredDay"),day).putInt(Store.key(id,"ignored"),ignored).apply();
         Plan plan=Store.plan(c,id);Puzzle puzzle=Store.newPuzzle(c,plan.puzzleType,Puzzle.level(!test&&plan.escalating,ignored));
         Entry entry=new Entry(id,at,start,phase,test,puzzle.encode());if(index<0)entries.add(entry);else entries.set(index,entry);write(c,entries);
+        if(!test)SequenceStatus.delivered(c,id,start,at,phase);
     }
     static void removeRoutine(Context c,String id){List<Entry> entries=read(c);entries.removeIf(e->e.routine.equals(id));write(c,entries);}
     static void clear(Context c){write(c,new ArrayList<>());}

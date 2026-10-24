@@ -6,7 +6,7 @@ Una sveglia Android che accompagna il risveglio con richiami progressivi e puzzl
 
 **Android 8+ · In italiano · Offline · Nessun account · Nessuna pubblicità**
 
-[Scarica l’APK 2.3](Panik-Attak.apk) · [Dettagli tecnici](docs/TECHNICAL.md) · [Prossimi passi](NOTES.md)
+[Scarica l’APK 3.0 Alpha 2](Panik-Attak.apk) · [Dettagli tecnici](docs/TECHNICAL.md) · [Piano V3](docs/V3-PLAN.md) · [Prossimi passi](NOTES.md)
 
 ## Un risveglio, quattro fasi
 
@@ -39,6 +39,12 @@ Puoi personalizzare durata e intervallo di ogni fase. Le prime tre supportano an
 L’ordinamento segue il dito e anima lo scambio. Puoi anche toccare due tessere per scambiarle. Le anteprime permettono di provare i puzzle senza modificare le sveglie.
 
 **Spegni solo questa** risolve il richiamo corrente. **Ferma la mattina**, pausa e modifica di una routine attiva richiedono una sfida difficile. La difficoltà crescente è facoltativa: aumenta dopo i richiami ignorati, separatamente per ciascuna routine.
+
+## La sequenza resta visibile
+
+Dal primo richiamo, una notifica mostra la routine in corso. Mentre suona apre il puzzle; fra i richiami resta una notifica silenziosa con fase e prossimo orario. Più routine in corso vengono riepilogate insieme. Si rimuove quando termini la sequenza, metti in pausa la routine o risolvi l’ultimo richiamo. Una routine soltanto programmata per domani non occupa le notifiche tutto il giorno.
+
+Le notifiche sono impostate come **in corso**, protette da “Cancella tutto”. **Android 14 e successivi consentono comunque lo swipe individuale a telefono sbloccato**: rimuovere la scheda non ferma la routine e non risolve il puzzle. È un [comportamento di Android](https://developer.android.com/about/versions/14/behavior-changes-all#non-dismissable-notifications), quindi non promettiamo una notifica impossibile da rimuovere in ogni situazione.
 
 ## Inizia in un minuto
 
@@ -74,5 +80,6 @@ Sviluppata e provata sul Samsung SM-S938B con Android 16. I rapporti descrivono 
 - [Upgrade e puzzle — 2.0](TEST-REPORT-v2.md)
 - [Routine multiple — 2.1](TEST-REPORT-v2.1.md)
 - [Controlli e trascinamento — 2.2](TEST-REPORT-v2.2.md)
+- [Notifiche delle sequenze — 3.0 Alpha 2](TEST-REPORT-v3-notifications.md)
 
 Le impostazioni necessarie alle sveglie rimangono sul dispositivo; l’app non richiede un account né una connessione internet.

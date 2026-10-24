@@ -29,13 +29,14 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
     }
     @Override protected void onPause(){visible=false;countdownHandler.removeCallbacks(countdownTick);super.onPause();}
     Plan plan; int pendingEdit=-1;String pendingRoutine,pendingDelete;
-    @Override public void onCreate(Bundle b){super.onCreate(b);
+    @Override public void onCreate(Bundle b){super.onCreate(b);SequenceStatus.openFromNotification(this,getIntent());
         getSupportFragmentManager().registerFragmentLifecycleCallbacks(new androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks(){
             @Override public void onFragmentStarted(androidx.fragment.app.FragmentManager manager,androidx.fragment.app.Fragment fragment){
                 if(fragment instanceof com.google.android.material.timepicker.MaterialTimePicker){var dialog=((com.google.android.material.timepicker.MaterialTimePicker)fragment).getDialog();if(dialog!=null){Ui.dialogButton(dialog.findViewById(com.google.android.material.R.id.material_timepicker_ok_button),true);Ui.dialogButton(dialog.findViewById(com.google.android.material.R.id.material_timepicker_cancel_button),false);}}
             }
         },false);
         if(b!=null){pendingEdit=b.getInt("pendingEdit",-1);pendingRoutine=b.getString("pendingRoutine");pendingDelete=b.getString("pendingDelete");}}
+    @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);SequenceStatus.openFromNotification(this,intent);if(!Store.prefs(this).getBoolean("ringing",false))render();}
     @Override protected void onSaveInstanceState(Bundle out){out.putInt("pendingEdit",pendingEdit);out.putString("pendingRoutine",pendingRoutine);out.putString("pendingDelete",pendingDelete);super.onSaveInstanceState(out);}
     void requestEdit(int edit){
         if(Store.enabled(this)){pendingEdit=edit;pendingRoutine=Store.selected(this);startActivityForResult(ChallengeActivity.intent(this,ChallengeActivity.EDIT),81);}

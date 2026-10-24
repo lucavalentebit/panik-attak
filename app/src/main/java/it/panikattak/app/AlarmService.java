@@ -16,10 +16,11 @@ public class AlarmService extends Service {
         channel.setDescription(getString(R.string.alarm_channel));channel.setSound(null,null);channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);nm.createNotificationChannel(channel);
         Intent open=new Intent(this,AlarmActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
         var pi=PendingIntent.getActivity(this,20,open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        Notification.Builder builder=new Notification.Builder(this,"alarm").setSmallIcon(it.panikattak.app.R.drawable.ic_alarm).setContentTitle(Store.name(this,Store.activeRoutine(this))+" · "+Plan.NAMES[level]).setContentText(getString(R.string.alarm_notification)).setCategory(Notification.CATEGORY_ALARM).setVisibility(Notification.VISIBILITY_PUBLIC).setOngoing(true).setContentIntent(pi);
+        int displayedPhase=Store.prefs(this).getInt("activePhase",0);
+        Notification.Builder builder=new Notification.Builder(this,"alarm").setSmallIcon(it.panikattak.app.R.drawable.ic_alarm).setContentTitle(Store.name(this,Store.activeRoutine(this))+" · "+Plan.NAMES[displayedPhase]).setContentText(getString(R.string.alarm_notification)).setCategory(Notification.CATEGORY_ALARM).setVisibility(Notification.VISIBILITY_PUBLIC).setOngoing(true).setAutoCancel(false).setOnlyAlertOnce(true).setContentIntent(pi);
         if(Store.prefs(this).getBoolean("ringing",false))builder.setFullScreenIntent(pi,true);
         if(Build.VERSION.SDK_INT>=31)builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
-        startForeground(99,builder.build());
+        Notification notification=builder.build();notification.flags|=Notification.FLAG_NO_CLEAR;startForeground(99,notification);
         if(!Store.prefs(this).getBoolean("ringing",false)){stopForeground(STOP_FOREGROUND_REMOVE);stopSelf();return START_NOT_STICKY;}
         if(wake==null){wake=getSystemService(PowerManager.class).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"PanikAttak:alarm");wake.acquire(4*60*60*1000L);}
         startSound();
