@@ -53,7 +53,7 @@ final class Store {
         for(int i=0;i<4;i++)e.putBoolean(key(id,"fixed"+i),p.fixed[i]).putInt(key(id,"fixedMinutes"+i),p.fixedMinutes[i]).putInt(key(id,"interval"+i),p.intervals[i]).putInt(key(id,"duration"+i),p.durations[i]);
     }
     static void save(Context c,Plan p){save(c,selected(c),p);}
-    static void save(Context c,String id,Plan p){if(!exists(c,id))throw new IllegalArgumentException("Missing routine");var e=prefs(c).edit();writePlan(e,id,p);e.apply();}
+    static void save(Context c,String id,Plan p){if(!exists(c,id))throw new IllegalArgumentException("Missing routine");HabitHistory.runningEvent(c,id,"partial","recall");var e=prefs(c).edit();writePlan(e,id,p);e.apply();}
     static boolean enabled(Context c){return enabled(c,selected(c));}
     static boolean enabled(Context c,String id){return exists(c,id)&&prefs(c).getBoolean(key(id,"enabled"),false);}
     static void setEnabled(Context c,String id,boolean enabled){if(!exists(c,id))return;prefs(c).edit().putBoolean(key(id,"enabled"),enabled).apply();}

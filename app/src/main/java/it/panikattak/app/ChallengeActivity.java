@@ -26,11 +26,12 @@ public class ChallengeActivity extends Activity {
             page.addView(Ui.bold(this,getString(PAUSE.equals(purpose)?R.string.pause_title:EDIT.equals(purpose)?R.string.edit_title:R.string.morning_title),28,Ui.TEXT));Ui.space(page,12);
             page.addView(Ui.text(this,getString(PAUSE.equals(purpose)?R.string.pause_hint:EDIT.equals(purpose)?R.string.edit_hint:R.string.morning_hint),14,Ui.MUTED));Ui.space(page,22);
         }
-        puzzleView=new PuzzleView(this,challenge,this::apply);page.addView(puzzleView);Ui.space(page,14);
+        puzzleView=new PuzzleView(this,challenge,this::apply);puzzleView.onWrong=()->HabitHistory.gate(this,routine,sequenceStart,purpose,"wrong",test);page.addView(puzzleView);HabitHistory.gate(this,routine,sequenceStart,purpose,"displayed",test);Ui.space(page,14);
         page.addView(Ui.button(this,getString(PREVIEW.equals(purpose)?R.string.cancel:R.string.cancel_gate),Ui.CARD,Ui.MUTED,this::finish));
     }
     void apply(String value){
         if(!challenge.accepts(value)||!Store.exists(this,routine))return;
+        HabitHistory.gate(this,routine,sequenceStart,purpose,"solved",test);
         boolean applied=true;
         if(PAUSE.equals(purpose))applied=Scheduler.pause(this,routine,challenge,value);
         else if(MORNING.equals(purpose))applied=Scheduler.dismissMorning(this,routine,sequenceStart,test,challenge,value);

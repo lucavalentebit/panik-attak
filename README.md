@@ -6,13 +6,29 @@ Una sveglia Android che accompagna il risveglio con richiami progressivi e puzzl
 
 **Android 8+ · In italiano · Offline · Nessun account · Nessuna pubblicità**
 
-[Scarica l’APK 3.0 Alpha 4](Panik-Attak.apk) · [Dettagli tecnici](docs/TECHNICAL.md) · [Piano V3](docs/V3-PLAN.md) · [Prossimi passi](NOTES.md)
+[Scarica Alpha 5](https://github.com/lucavalentebit/panik-attak/releases/tag/v3.0-alpha.5) · [APK nella repository](Panik-Attak.apk) · [Dettagli tecnici](docs/TECHNICAL.md) · [Piano V3](docs/V3-PLAN.md)
+
+## Novità di Alpha 5 — Abitudini
+
+La pagina **Abitudini** ora raccoglie le tue risposte alle sveglie, mantenendo il verde lime, le superfici scure e le schede arrotondate dell’app.
+
+- Filtri **7 / 30 / 90 giorni** e per routine, anche dopo averla rinominata o eliminata.
+- Tempo mediano alla prima risposta, tempo fino a **Ferma la mattina** e frequenza di Panic Mode, con il numero di sequenze osservate.
+- Grafico delle risposte e conclusioni, in minuti trascorsi oppure ora locale; distribuzione degli orari di fine, fasi e riepilogo settimanale.
+- Storico consultabile: consegne, puzzle, soluzioni, conferme e motivo di conclusione.
+- Impostazioni per registrazione, conservazione **30 / 90 / 365 giorni**, esportazione CSV e cancellazione dello storico.
+
+**Lo storico parte da questo aggiornamento.** Le prove e le anteprime non contano. Le statistiche descrivono le risposte all’app, non misurano quando ti alzi dal letto. I riepiloghi mostrano “Dati ancora pochi” finché non hanno almeno cinque campioni validi.
+
+<img src="docs/images/abitudini-alpha5.png" width="320" alt="Pagina Abitudini con schede verde lime e riepiloghi delle risposte">
+
+Anteprima sul Samsung con dati di test isolati: questi esempi non vengono aggiunti al tuo storico. [Tutte le novità della release](RELEASE-NOTES-alpha5.md).
 
 ## Le pagine
 
 - **Oggi** mostra il prossimo richiamo fra tutte le routine attive, il countdown, gli orari coincidenti e le sequenze in corso.
 - **Routine** raccoglie le routine e apre una pagina dedicata a ciascuna, con tutti i controlli e i puzzle già disponibili. Il menù ⋮ gestisce nome, copia ed eliminazione.
-- **Abitudini** è pronta nella navigazione; grafici e storico arriveranno in seguito. Nessun dato statistico viene ancora raccolto.
+- **Abitudini** mostra statistiche e storico delle sequenze reali, con filtri e dettagli consultabili.
 - **Impostazioni**, dall’ingranaggio in alto, raccoglie volume sveglia, Non disturbare, notifiche e permessi Android. Mostra lo stato reale e si aggiorna quando torni dalle impostazioni del telefono.
 
 ## Impostazioni essenziali
@@ -20,6 +36,7 @@ Una sveglia Android che accompagna il risveglio con richiami progressivi e puzzl
 - **Suono**: controlla il volume Sveglia attuale e apri i controlli audio o Non disturbare di Android.
 - **Notifiche**: gestisci gli avvisi sveglia, scegli se mostrare la notifica silenziosa fra i richiami e se includere i nomi delle routine nelle notifiche sullo schermo bloccato. I nomi sono nascosti per impostazione iniziale; Android mantiene il controllo finale sulla visibilità.
 - **Affidabilità**: verifica sveglie precise e schermo intero, e raggiungi le informazioni dell’app per controllare la batteria.
+- **Storico delle abitudini**: scegli se registrare le risposte, per quanto conservarle, esportale in CSV o cancellale. I dati restano sul telefono; disattivare lo storico non ferma le sveglie.
 
 Disattivare **Stato della sequenza** nasconde solo la notifica silenziosa: le sveglie continuano a suonare e richiedono il puzzle. Giorni, orari, vibrazione e difficoltà restano nella singola routine.
 
@@ -98,5 +115,6 @@ Sviluppata e provata sul Samsung SM-S938B con Android 16. I rapporti descrivono 
 - [Notifiche delle sequenze — 3.0 Alpha 2](TEST-REPORT-v3-notifications.md)
 - [Navigazione e pagine — 3.0 Alpha 3](TEST-REPORT-v3-pages.md)
 - [Impostazioni essenziali — 3.0 Alpha 4](TEST-REPORT-v3-settings.md)
+- [Statistiche e storico — 3.0 Alpha 5](TEST-REPORT-v3-habits.md)
 
 Le impostazioni necessarie alle sveglie rimangono sul dispositivo; l’app non richiede un account né una connessione internet.

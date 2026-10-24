@@ -72,6 +72,7 @@ final class SettingsPage {
         if(Build.VERSION.SDK_INT>=34){link(a,reliability,R.string.settings_fullscreen,a.getString(a.fullscreen()?R.string.settings_allowed:R.string.settings_allow),Target.FULLSCREEN);separator(reliability);}
         boolean unrestricted=a.getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(a.getPackageName());
         link(a,reliability,R.string.settings_battery,a.getString(unrestricted?R.string.settings_battery_exempt:R.string.settings_battery_check),Target.BATTERY);Ui.space(reliability,8);reliability.addView(Ui.text(a,a.getString(R.string.settings_battery_hint),12,Ui.MUTED));
+        HabitsPage.settings(a,page);
         try{TextView version=Ui.text(a,"Panik Attak · "+a.getPackageManager().getPackageInfo(a.getPackageName(),0).versionName,12,Ui.MUTED);version.setGravity(Gravity.CENTER);page.addView(version);}catch(android.content.pm.PackageManager.NameNotFoundException ignored){}
     }
 }

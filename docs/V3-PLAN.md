@@ -10,6 +10,10 @@ This document proposes V3 in **four implementation steps**. The original session
 
 **Settings update — 24 October 2026:** at the user's request, build **3.0-alpha.4** fills the Settings page with essential working controls. Sound shows the current alarm volume and links to Android audio/DND controls. Notifications exposes alarm-channel settings, a silent sequence-status switch (on by default), and lock-screen routine names (off by default). Reliability shows exact-alarm/full-screen access and battery guidance with Android links. Values refresh on return; unsupported system screens fall back to app information. The optional status switch never stops alarms or bypasses a puzzle. The previous routine-detail permissions card now links here. History recording, retention, export and deletion remain deferred until the statistics implementation; no empty history controls have been added. See [settings verification](../TEST-REPORT-v3-settings.md).
 
+**Statistics update — 24 October 2026:** build **3.0-alpha.5** implements the core Abitudini page and the history foundation it needs. The page keeps the existing lime/olive palette, dark surfaces, typography and rounded controls. It provides 7/30/90-day and routine filters, first-response and explicit-stop medians, Panic reach rate, response/ending scatter plots (elapsed or local time), separate ending histograms, phase and weekday summaries, session timelines and CSV export. Small samples stay visible in raw history; summary claims require five valid samples. History starts now, with no invented Alpha backfill.
+
+History is recorded in credential-protected SQLite with stable event identities and a minimal, replay-safe Direct Boot outbox. Solved puzzles and accepted dismissals are separate; test/preview/edit challenges are excluded. Superseded recalls and partial/unknown outcomes remain identifiable. Settings now includes recording on/off, 30/90/365-day retention, export and confirmed erasure, covering pending outbox events too. Device tests use separate databases and restore the user's preferences. Optional puzzle-solving histograms, active-visible puzzle time, cross-period comparisons and consistency/IQR remain future enhancements; the widget is still step 4. See [statistics verification](../TEST-REPORT-v3-habits.md).
+
 ## Direction
 
 V3 should answer four questions clearly: **What will happen next? Which routine controls it? How do I usually respond? Can I see the current state without opening the app?**
@@ -41,7 +45,7 @@ Use three bottom-navigation destinations with visible text labels:
 
 **Impostazioni** opens from a gear in the top app bar. Settings are infrequent maintenance, so they do not need a fourth bottom tab. Puzzle previews belong to the routine editor, not another top-level page. During step 1, Habits has an honest “history arrives with V3 tracking” empty state; no sample data presented as real history.
 
-Alpha 3 initially left the Settings body empty for phase 3. The user's subsequent request brought essential Settings forward into Alpha 4: sound, notification preferences and reliability links now live here, with an entry point from routine detail and the setup warning on Oggi. Only history settings still depend on phase 3.
+Alpha 3 initially left the Settings body empty for phase 3. The user's subsequent request brought essential Settings forward into Alpha 4: sound, notification preferences and reliability links now live here, with an entry point from routine detail and the setup warning on Oggi. Alpha 5 adds the history settings together with Abitudini.
 
 ```mermaid
 flowchart TD

@@ -31,7 +31,7 @@ final class SequenceStatus {
         String value=a.toString();if(!value.equals(Store.prefs(c).getString(KEY,"[]")))Store.prefs(c).edit().putString(KEY,value).commit();
     }
     static void delivered(Context c,String id,long start,long at,int phase){
-        try{var runs=read(c);runs.put(id,new Run(id,start,at,phase));write(c,runs.values());}
+        try{var runs=read(c);Run prior=runs.get(id);if(prior!=null&&prior.start!=start)HabitHistory.runEvent(c,prior,"interrupted");runs.put(id,new Run(id,start,at,phase));write(c,runs.values());}
         catch(RuntimeException e){Log.e("PanikAttak","Unable to record sequence notification state",e);}
     }
     static List<Run> current(Context c,long now){
@@ -40,11 +40,11 @@ final class SequenceStatus {
         for(var entry:queue)if(!entry.test)runs.put(entry.routine,new Run(entry.routine,entry.start,entry.at,entry.phase));
         Iterator<Run> iterator=runs.values().iterator();while(iterator.hasNext()){
             Run r=iterator.next();
-            if(!Store.enabled(c,r.routine)||Store.skipped(c,r.routine)==r.start){iterator.remove();continue;}
+            if(!Store.enabled(c,r.routine)||Store.skipped(c,r.routine)==r.start){HabitHistory.runningEvent(c,r.routine,"interrupted","recall");iterator.remove();continue;}
             for(var entry:queue)if(!entry.test&&entry.routine.equals(r.routine)&&entry.start==r.start)r.ringing=true;
             Plan.Event next=Store.plan(c,r.routine).next(Math.max(now,r.lastAt),Store.skipped(c,r.routine),ZoneId.systemDefault());
             if(next!=null&&next.start==r.start)r.nextAt=next.at;
-            if(!r.ringing&&r.nextAt==0)iterator.remove();
+            if(!r.ringing&&r.nextAt==0){HabitHistory.runningEvent(c,r.routine,"interrupted","recall");iterator.remove();}
         }
         write(c,runs.values());return new ArrayList<>(runs.values());
     }

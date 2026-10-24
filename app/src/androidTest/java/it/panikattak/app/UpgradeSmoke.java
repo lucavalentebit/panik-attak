@@ -17,7 +17,7 @@ public class UpgradeSmoke extends Instrumentation {
         super.runOnMainSync(()->{try{action.run();}catch(Throwable e){failure.set(e);}});
         if(failure.get()!=null)throw new AssertionError(failure.get());
     }
-    @Override public void onCreate(Bundle args){super.onCreate(args);start();}
+    @Override public void onCreate(Bundle args){super.onCreate(args);HabitHistory.testNamespace="instrumentation-";getTargetContext().deleteDatabase(HabitHistory.testNamespace+HabitHistory.DATABASE);getTargetContext().createDeviceProtectedStorageContext().deleteDatabase(HabitHistory.testNamespace+HabitHistory.OUTBOX);start();}
     void check(boolean value,String message){checks++;if(!value)throw new AssertionError(message);}
     void capture(Activity a,String name){capture(a.getWindow().getDecorView(),name);}
     void capture(View view,String name){

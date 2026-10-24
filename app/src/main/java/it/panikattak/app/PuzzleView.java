@@ -12,7 +12,7 @@ final class PuzzleView extends LinearLayout {
     final Puzzle puzzle; final Solved solved; final Handler handler=new Handler(Looper.getMainLooper());
     final ArrayList<Integer> entered=new ArrayList<>();
     final int[] order; String answer=""; boolean showing,complete; int selected=-1;
-    TextView feedback,input; LinearLayout board; final ArrayList<TextView> cells=new ArrayList<>();
+    TextView feedback,input; LinearLayout board; final ArrayList<TextView> cells=new ArrayList<>();Runnable onWrong=()->{};
     static final int[] COLORS={0xFFF24C5A,0xFF3989FF,0xFFFFDF36,0xFF23BD79,0xFFAE63E8,0xFFFF932F};
     static final String[] FACES={"😄","🙂","😐","🙁","😢"};
     PuzzleView(Context c,Puzzle puzzle,Solved solved){super(c);this.puzzle=puzzle;this.solved=solved;order=puzzle.data.clone();setOrientation(VERTICAL);render();}
@@ -122,6 +122,7 @@ final class PuzzleView extends LinearLayout {
     }
     void submit(String value){if(complete||settling||dragFrom>=0)return;if(puzzle.accepts(value)){complete=true;handler.removeCallbacksAndMessages(null);feedback.setText(s(R.string.correct));feedback.setTextColor(Ui.LIME);solved.accept(value);}else wrong();}
     void wrong(){
+        onWrong.run();
         feedback.setText(s(R.string.wrong));feedback.setTextColor(Ui.RED);android.graphics.drawable.GradientDrawable border=Ui.shape(Ui.BG,Ui.dp(getContext(),18));border.setStroke(Ui.dp(getContext(),2),Ui.RED);setBackground(border);
         android.os.Vibrator vibrator=getContext().getSystemService(android.os.Vibrator.class);if(vibrator!=null&&Store.prefs(getContext()).getBoolean("vibration",true))vibrator.vibrate(VibrationEffect.createOneShot(45,VibrationEffect.DEFAULT_AMPLITUDE));
         if(puzzle.type==Puzzle.COLORS||puzzle.type==Puzzle.TILES)play();

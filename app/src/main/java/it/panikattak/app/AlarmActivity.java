@@ -20,7 +20,7 @@ public class AlarmActivity extends Activity {
         if(Store.activeRoutine(this).equals(routine)&&at==activeAt&&puzzle!=null&&puzzle.encode().equals(current.encode()))return;
         routine=Store.activeRoutine(this);activeAt=at;puzzle=current;solvedAnswer=null;render();
     }
-    @Override public void onResume(){super.onResume();refresh();if(puzzleView!=null)puzzleView.resume();}
+    @Override public void onResume(){super.onResume();refresh();if(puzzleView!=null){puzzleView.resume();HabitHistory.current(this,"displayed");}}
     @Override protected void onPause(){if(puzzleView!=null)puzzleView.suspend();super.onPause();}
     @Override protected void onNewIntent(Intent i){super.onNewIntent(i);setIntent(i);refresh();}
     @Override protected void onDestroy(){unregisterReceiver(updates);super.onDestroy();}
@@ -34,7 +34,7 @@ public class AlarmActivity extends Activity {
         TextView clock=Ui.text(this,Store.time(activeAt),58,Ui.TEXT);clock.setGravity(Gravity.CENTER);page.addView(clock);Ui.space(page,12);
         page.addView(Ui.text(this,getString(R.string.alarm_hint),14,Ui.MUTED));Ui.space(page,18);
         TextView dismiss=Ui.button(this,getString(R.string.dismiss_current),Ui.LIME,Ui.INK,()->{Scheduler.dismissCurrent(this,routine,activeAt,puzzle,solvedAnswer);refresh();});dismiss.setVisibility(View.GONE);
-        puzzleView=new PuzzleView(this,puzzle,answer->{solvedAnswer=answer;dismiss.setVisibility(View.VISIBLE);});page.addView(puzzleView);Ui.space(page,16);page.addView(dismiss);Ui.space(page,10);
+        puzzleView=new PuzzleView(this,puzzle,answer->{solvedAnswer=answer;HabitHistory.current(this,"solved");dismiss.setVisibility(View.VISIBLE);});puzzleView.onWrong=()->HabitHistory.current(this,"wrong");page.addView(puzzleView);HabitHistory.current(this,"displayed");Ui.space(page,16);page.addView(dismiss);Ui.space(page,10);
         page.addView(Ui.button(this,getString(R.string.stop_morning),Ui.CARD,Ui.LILAC,()->startActivity(ChallengeActivity.intent(this,ChallengeActivity.MORNING))));
     }
 }

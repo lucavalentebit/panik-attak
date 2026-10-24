@@ -19,6 +19,7 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
     static final String OPEN_TODAY="openToday";
     int destination=TODAY,settingsReturn=TODAY;
     String detailRoutine;
+    int exportDays=0;String exportRoutine="";long exportDate;
     AppShell shell;
     androidx.activity.OnBackPressedCallback navigationBack;
     final BroadcastReceiver pageUpdates=new BroadcastReceiver(){@Override public void onReceive(Context context,Intent intent){if(visible&&destination==TODAY)render();}};
@@ -38,7 +39,8 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
     @Override protected void onPause(){visible=false;countdownHandler.removeCallbacks(countdownTick);if(watchingUpdates){unregisterReceiver(pageUpdates);watchingUpdates=false;}super.onPause();}
     Plan plan; int pendingEdit=-1;String pendingRoutine,pendingDelete;
     @Override public void onCreate(Bundle b){super.onCreate(b);
-        if(b!=null){destination=b.getInt("page",TODAY);settingsReturn=b.getInt("settingsReturn",TODAY);detailRoutine=b.getString("detailRoutine");}
+        HabitHistory.initialize(this);
+        if(b!=null){destination=b.getInt("page",TODAY);settingsReturn=b.getInt("settingsReturn",TODAY);detailRoutine=b.getString("detailRoutine");exportDays=b.getInt("exportDays",0);exportRoutine=b.getString("exportRoutine","");exportDate=b.getLong("exportDate",LocalDate.now().toEpochDay());}
         shell=new AppShell(this,b==null?null:b.getBundle("pageScroll"));
         navigationBack=new androidx.activity.OnBackPressedCallback(destination!=TODAY){@Override public void handleOnBackPressed(){goBack();}};
         getOnBackPressedDispatcher().addCallback(this,navigationBack);handleNavigationIntent(getIntent());
@@ -50,7 +52,7 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
         if(b!=null){pendingEdit=b.getInt("pendingEdit",-1);pendingRoutine=b.getString("pendingRoutine");pendingDelete=b.getString("pendingDelete");}}
     void handleNavigationIntent(Intent intent){if(intent.getBooleanExtra(OPEN_TODAY,false)){destination=TODAY;intent.removeExtra(OPEN_TODAY);}SequenceStatus.openFromNotification(this,intent);}
     @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);handleNavigationIntent(intent);if(!Store.prefs(this).getBoolean("ringing",false))render();}
-    @Override protected void onSaveInstanceState(Bundle out){shell.remember();out.putInt("page",destination);out.putInt("settingsReturn",settingsReturn);out.putString("detailRoutine",detailRoutine);out.putBundle("pageScroll",shell.positions);out.putInt("pendingEdit",pendingEdit);out.putString("pendingRoutine",pendingRoutine);out.putString("pendingDelete",pendingDelete);super.onSaveInstanceState(out);}
+    @Override protected void onSaveInstanceState(Bundle out){shell.remember();out.putInt("page",destination);out.putInt("settingsReturn",settingsReturn);out.putString("detailRoutine",detailRoutine);out.putBundle("pageScroll",shell.positions);out.putInt("pendingEdit",pendingEdit);out.putString("pendingRoutine",pendingRoutine);out.putString("pendingDelete",pendingDelete);out.putInt("exportDays",exportDays);out.putString("exportRoutine",exportRoutine);out.putLong("exportDate",exportDate);super.onSaveInstanceState(out);}
     void navigate(int page){if(page<TODAY||page>HABITS)return;destination=page;render();}
     void openRoutine(String id){if(!Store.exists(this,id))return;detailRoutine=id;Store.select(this,id);destination=DETAIL;if(shell!=null)render();}
     void openSettings(){if(destination!=SETTINGS)settingsReturn=destination;destination=SETTINGS;render();}
@@ -63,12 +65,24 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
     void openEditor(int edit){plan=Store.plan(this);if(edit==0)showTimeEditor();else if(edit==1)showDaysEditor();else if(edit>=2&&edit<=5)showPhaseEditor(edit-2);else if(edit==6)showPuzzleEditor();else if(edit==7){plan.escalating=!plan.escalating;save();}}
     @Override protected void onActivityResult(int request,int result,Intent data){
         super.onActivityResult(request,result,data);
+        if(request==84&&result==RESULT_OK&&data!=null&&data.getData()!=null){
+            Uri uri=data.getData();int days=exportDays;String id=exportRoutine;long day=exportDate;
+            HabitHistory.IO.execute(()->{try{List<HabitStats.Session> sessions=HabitStats.sessions(HabitHistory.events(this));if(days>0)sessions=HabitStats.filter(sessions,LocalDate.ofEpochDay(day),days,id);
+                try(java.io.OutputStream output=getContentResolver().openOutputStream(uri,"wt")){if(output==null)throw new java.io.IOException("No output stream");output.write(HabitStats.csv(sessions).getBytes(java.nio.charset.StandardCharsets.UTF_8));}
+                runOnUiThread(()->Toast.makeText(this,"Storico esportato",Toast.LENGTH_SHORT).show());
+            }catch(Exception error){runOnUiThread(()->Toast.makeText(this,"Esportazione non riuscita. Riprova.",Toast.LENGTH_LONG).show());}});
+        }
         if(request==81){int edit=pendingEdit;String id=pendingRoutine;pendingEdit=-1;pendingRoutine=null;
             if(result==RESULT_OK&&id!=null&&Store.exists(this,id)&&!Store.prefs(this).getBoolean("ringing",false)){openRoutine(id);openEditor(edit);}}
         if(request==82){String id=pendingDelete;pendingDelete=null;if(result==RESULT_OK&&id!=null){Store.delete(this,id);Scheduler.schedule(this);render();}}
     }
+    void exportHabits(boolean filtered){
+        exportDays=filtered?HabitsPage.days(this):0;exportRoutine=filtered?HabitsPage.routine(this):"";exportDate=LocalDate.now().toEpochDay();
+        try{startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("text/csv").putExtra(Intent.EXTRA_TITLE,"Panik-Attak-abitudini-"+LocalDate.now()+".csv"),84);}catch(ActivityNotFoundException missing){Toast.makeText(this,"Nessuna app disponibile per salvare il file.",Toast.LENGTH_LONG).show();}
+    }
     @android.annotation.SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override public void onResume(){super.onResume();visible=true;
+        HabitHistory.maintenance(this);
         if(!watchingUpdates){if(Build.VERSION.SDK_INT>=33)registerReceiver(pageUpdates,new IntentFilter("it.panikattak.REFRESH"),Context.RECEIVER_NOT_EXPORTED);else registerReceiver(pageUpdates,new IntentFilter("it.panikattak.REFRESH"));watchingUpdates=true;}
         if(Store.prefs(this).getBoolean("ringing",false)){startActivity(new Intent(this,AlarmActivity.class));return;}Scheduler.schedule(this);render();}
     void activate(){activate(Store.selected(this));}
@@ -104,7 +118,7 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
         switch(destination){
             case TODAY:TodayPage.add(this,page);break;
             case ROUTINES:RoutineUi.add(this,page);break;
-            case HABITS:PlaceholderPages.habits(this,page);break;
+            case HABITS:HabitsPage.add(this,page);break;
             case SETTINGS:SettingsPage.add(this,page);break;
             case DETAIL:renderRoutineDetail(page);break;
         }

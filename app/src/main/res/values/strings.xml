@@ -45,7 +45,7 @@
     <string name="recall_pending">Puzzle da risolvere</string>
     <string name="recall_at">Prossimo richiamo alle %1$s</string>
     <string name="habits_empty_title">Le tue abitudini, qui</string>
-    <string name="habits_empty_hint">Grafici e storico arriveranno con i prossimi aggiornamenti. Per ora non vengono raccolti dati sulle tue abitudini.</string>
+    <string name="habits_empty_hint">Non ci sono sequenze registrate in questo periodo. Lo storico parte da questo aggiornamento: usa una routine per vedere qui le tue risposte. Le prove e le anteprime non vengono conteggiate.</string>
     <string name="sequence_channel">Sequenze in corso</string>
     <string name="sequence_channel_description">Stato silenzioso della routine tra un richiamo e il successivo</string>
     <string name="sequence_running">%1$s · Sequenza in corso</string>
