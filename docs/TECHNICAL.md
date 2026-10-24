@@ -102,3 +102,15 @@ Entrambe le notifiche richiedono `FLAG_ONGOING_EVENT` e `FLAG_NO_CLEAR`. Android
 `PlaceholderPages` contiene Abitudini senza dati fittizi e la pagina Impostazioni con corpo vuoto, riservata alla fase 3. Le notifiche singole aprono il dettaglio verificando l’identità dell’occorrenza; il riepilogo apre Oggi. Il comportamento dello swipe non viene modificato in questa versione.
 
 Test sul Samsung: 36 verifiche di navigazione (`NavigationSmoke`), 35 sulle routine e consegne simultanee (`RoutineSmoke`), 6 sul countdown nel dettaglio (`CountdownSmoke`). [Rapporto completo](../TEST-REPORT-v3-pages.md).
+
+## Versione 3.0 Alpha 4 — impostazioni essenziali
+
+`SettingsPage` sostituisce il corpo vuoto di Impostazioni. Le sezioni Suono, Notifiche e Affidabilità leggono volume Sveglia, accesso Non disturbare, autorizzazione notifiche e canale `alarm`, sveglie precise, schermo intero ed esclusione dalle ottimizzazioni Android. I valori vengono riletti in `onResume`, mantenendo navigazione e scroll. I collegamenti aprono i pannelli Android appropriati; se un pannello non è disponibile si ripiega sulle informazioni dell’app. Su Samsung il testo guida alla voce Batteria → Senza restrizioni, senza confondere l’esclusione Android con ogni restrizione del produttore.
+
+`AppSettings` conserva due preferenze globali: `settings.sequenceStatus` (predefinita true) e `settings.lockScreenNames` (predefinita false). Nascondere la notifica silenziosa 100 non cancella le occorrenze, non riprogramma le routine e non tocca la notifica 99 del servizio audio. Riattivandola, lo stato attuale viene ricostruito. La privacy aggiorna entrambe le notifiche, anche quella del servizio già avviato, senza riavviare il suono o rigenerare il puzzle.
+
+Le notifiche usano `VISIBILITY_PRIVATE` con `publicVersion` generica quando i nomi sono nascosti e `VISIBILITY_PUBLIC` quando sono consentiti. La preferenza riguarda le notifiche, non nasconde il nome nella schermata del puzzle. Android e le scelte dell’utente sulla schermata bloccata restano determinanti: [documentazione Android sulla visibilità](https://developer.android.com/develop/ui/views/notifications/build-notification#lockscreenNotification).
+
+Il dettaglio routine rimanda alla pagina globale con **Suono e permessi**; vibrazione, orari, giorni e puzzle rimangono per routine. La verifica iniziale delle notifiche considera anche il canale sveglie disabilitato e apre quel canale per correggerlo. Nessun controllo per storico, esportazione o cancellazione viene mostrato prima dell’implementazione delle statistiche.
+
+`SettingsSmoke` verifica preferenze, persistenza, privacy, notifiche del servizio reale, isolamento da puzzle e pianificazione, azioni Android e fallback, senza cambiare volumi o policy Non disturbare. Runner: `-PtestRunner=it.panikattak.app.SettingsSmoke`. Risultati e limiti nel [rapporto Alpha 4](../TEST-REPORT-v3-settings.md).

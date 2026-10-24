@@ -8,6 +8,4 @@ final class PlaceholderPages {
         LinearLayout card=Ui.card(a,Ui.CARD);card.addView(Ui.bold(a,a.getString(R.string.habits_empty_title),20,Ui.TEXT));Ui.space(card,12);
         card.addView(Ui.text(a,a.getString(R.string.habits_empty_hint),14,Ui.MUTED));page.addView(card);
     }
-    // Intentionally empty: the settings controls belong to phase 3.
-    static void settings(MainActivity a,LinearLayout page){}
 }

@@ -9,18 +9,24 @@ public class AlarmService extends Service {
     MediaPlayer player; Vibrator vibrator; PowerManager.WakeLock wake; AudioManager audio; AudioFocusRequest focus;
     final Handler handler=new Handler(); int level; float volume;
     final Runnable ramp=new Runnable(){public void run(){volume=Math.min(1f,volume+0.08f);if(player!=null){try{player.setVolume(volume,volume);}catch(Exception ignored){}}if(volume<1f)handler.postDelayed(this,4000);}};
+    static void ensureChannel(Context c){
+        NotificationChannel channel=new NotificationChannel("alarm","Sveglie Panik Attak",NotificationManager.IMPORTANCE_HIGH);
+        channel.setDescription(c.getString(R.string.alarm_channel));channel.setSound(null,null);channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);c.getSystemService(NotificationManager.class).createNotificationChannel(channel);
+    }
+    static Notification notification(Context c){
+        ensureChannel(c);
+        Intent open=new Intent(c,AlarmActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        var pi=PendingIntent.getActivity(c,20,open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        int displayedPhase=Store.prefs(c).getInt("activePhase",0);
+        Notification publicVersion=new Notification.Builder(c,"alarm").setSmallIcon(R.drawable.ic_alarm).setContentTitle(c.getString(R.string.alarm_public_title)).setContentText(c.getString(R.string.alarm_notification)).setContentIntent(pi).setOngoing(true).build();
+        Notification.Builder builder=new Notification.Builder(c,"alarm").setSmallIcon(R.drawable.ic_alarm).setContentTitle(Store.name(c,Store.activeRoutine(c))+" · "+Plan.NAMES[displayedPhase]).setContentText(c.getString(R.string.alarm_notification)).setCategory(Notification.CATEGORY_ALARM).setVisibility(AppSettings.showNames(c)?Notification.VISIBILITY_PUBLIC:Notification.VISIBILITY_PRIVATE).setPublicVersion(publicVersion).setOngoing(true).setAutoCancel(false).setOnlyAlertOnce(true).setContentIntent(pi);
+        if(Store.prefs(c).getBoolean("ringing",false))builder.setFullScreenIntent(pi,true);
+        if(Build.VERSION.SDK_INT>=31)builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
+        Notification notification=builder.build();notification.flags|=Notification.FLAG_NO_CLEAR;return notification;
+    }
     @Override public int onStartCommand(Intent i,int flags,int id) {
         level=Store.prefs(this).getInt("activePhase",0);for(AlarmQueue.Entry entry:AlarmQueue.read(this))level=Math.max(level,entry.phase);
-        var nm=getSystemService(NotificationManager.class);
-        NotificationChannel channel=new NotificationChannel("alarm","Sveglie Panik Attak",NotificationManager.IMPORTANCE_HIGH);
-        channel.setDescription(getString(R.string.alarm_channel));channel.setSound(null,null);channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);nm.createNotificationChannel(channel);
-        Intent open=new Intent(this,AlarmActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        var pi=PendingIntent.getActivity(this,20,open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        int displayedPhase=Store.prefs(this).getInt("activePhase",0);
-        Notification.Builder builder=new Notification.Builder(this,"alarm").setSmallIcon(it.panikattak.app.R.drawable.ic_alarm).setContentTitle(Store.name(this,Store.activeRoutine(this))+" · "+Plan.NAMES[displayedPhase]).setContentText(getString(R.string.alarm_notification)).setCategory(Notification.CATEGORY_ALARM).setVisibility(Notification.VISIBILITY_PUBLIC).setOngoing(true).setAutoCancel(false).setOnlyAlertOnce(true).setContentIntent(pi);
-        if(Store.prefs(this).getBoolean("ringing",false))builder.setFullScreenIntent(pi,true);
-        if(Build.VERSION.SDK_INT>=31)builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
-        Notification notification=builder.build();notification.flags|=Notification.FLAG_NO_CLEAR;startForeground(99,notification);
+        startForeground(99,notification(this));
         if(!Store.prefs(this).getBoolean("ringing",false)){stopForeground(STOP_FOREGROUND_REMOVE);stopSelf();return START_NOT_STICKY;}
         if(wake==null){wake=getSystemService(PowerManager.class).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"PanikAttak:alarm");wake.acquire(4*60*60*1000L);}
         startSound();

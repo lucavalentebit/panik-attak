@@ -46,8 +46,8 @@ public class NavigationSmoke extends ConfigSmoke {
             check(gate!=null&&gate.routine.equals(later)&&gate.challenge.level==2,"active editor still uses target routine hard puzzle");final ChallengeActivity challenge=gate;runOnMainSync(()->challenge.apply("wrong"));check(!gate.isFinishing(),"wrong answer does not unlock editing");runOnMainSync(gate::finish);settle();gate=null;
             check(Store.plan(context,later).hour==late.hour&&screen.destination==MainActivity.DETAIL,"cancelled gate preserves configuration and route");
             runOnMainSync(()->screen.shell.scroll.scrollTo(0,Ui.dp(screen,350)));settle();int scroll=screen.shell.scroll.getScrollY();check(scroll>0,"detail scrolls independently");
-            settings();check(screen.destination==MainActivity.SETTINGS&&screen.shell.body.getChildCount()==0,"settings has an empty body");capture(screen,"pages-settings");
-            recreate(false);check(screen.destination==MainActivity.SETTINGS&&screen.shell.body.getChildCount()==0,"empty Settings survives recreation");back();
+            settings();check(screen.destination==MainActivity.SETTINGS&&screen.shell.body.findViewWithTag(AppSettings.STATUS)!=null,"settings controls are available");capture(screen,"pages-settings");
+            recreate(false);check(screen.destination==MainActivity.SETTINGS&&screen.shell.body.findViewWithTag(AppSettings.STATUS)!=null,"Settings controls survive recreation");back();
             check(screen.destination==MainActivity.DETAIL&&screen.detailRoutine.equals(later),"Back restores exact routine after recreation");check(Math.abs(screen.shell.scroll.getScrollY()-scroll)<5,"detail scroll restored");
             recreate(false);check(screen.destination==MainActivity.DETAIL&&Math.abs(screen.shell.scroll.getScrollY()-scroll)<5,"detail route and scroll survive recreation directly");
             capture(screen,"pages-detail");back();check(screen.destination==MainActivity.ROUTINES,"detail Back returns to list");back();check(screen.destination==MainActivity.TODAY,"list Back returns to Today");

@@ -11,6 +11,10 @@ import java.util.*;
 final class SequenceStatus {
     static final String KEY="sequenceRuns", CHANNEL="sequence_status", ROUTINE="statusRoutine";
     static final int NOTIFICATION_ID=100;
+    static void ensureChannel(Context c){
+        NotificationChannel channel=new NotificationChannel(CHANNEL,c.getString(R.string.sequence_channel),NotificationManager.IMPORTANCE_LOW);
+        channel.setDescription(c.getString(R.string.sequence_channel_description));channel.setSound(null,null);channel.enableVibration(false);channel.setShowBadge(false);c.getSystemService(NotificationManager.class).createNotificationChannel(channel);
+    }
     static final class Run {
         final String routine;final long start,lastAt;final int phase;
         long nextAt;boolean ringing;
@@ -51,9 +55,8 @@ final class SequenceStatus {
     static void refresh(Context c,long now){
         NotificationManager manager=c.getSystemService(NotificationManager.class);
         List<Run> waiting=new ArrayList<>();for(Run r:current(c,now))if(!r.ringing)waiting.add(r);
-        if(waiting.isEmpty()){manager.cancel(NOTIFICATION_ID);return;}
-        NotificationChannel channel=new NotificationChannel(CHANNEL,c.getString(R.string.sequence_channel),NotificationManager.IMPORTANCE_LOW);
-        channel.setDescription(c.getString(R.string.sequence_channel_description));channel.setSound(null,null);channel.enableVibration(false);channel.setShowBadge(false);manager.createNotificationChannel(channel);
+        if(waiting.isEmpty()||!AppSettings.showStatus(c)){manager.cancel(NOTIFICATION_ID);return;}
+        ensureChannel(c);
         waiting.sort(Comparator.comparingLong(r->r.nextAt));Run first=waiting.get(0);
         String title=waiting.size()==1?c.getString(R.string.sequence_running,Store.name(c,first.routine)):c.getString(R.string.sequences_running,waiting.size());
         String text=c.getString(R.string.sequence_next,Plan.NAMES[first.phase],Store.time(first.nextAt));
@@ -65,7 +68,7 @@ final class SequenceStatus {
         Notification publicVersion=new Notification.Builder(c,CHANNEL).setSmallIcon(R.drawable.ic_alarm).setContentTitle(c.getString(R.string.sequence_generic)).setContentText(c.getString(R.string.sequence_open)).setOngoing(true).build();
         Notification notification=new Notification.Builder(c,CHANNEL).setSmallIcon(R.drawable.ic_alarm).setContentTitle(title).setContentText(text).setStyle(lines)
             .setCategory(Notification.CATEGORY_STATUS).setOngoing(true).setAutoCancel(false).setOnlyAlertOnce(true).setShowWhen(false)
-            .setVisibility(Notification.VISIBILITY_PRIVATE).setPublicVersion(publicVersion).setContentIntent(intent)
+            .setVisibility(AppSettings.showNames(c)?Notification.VISIBILITY_PUBLIC:Notification.VISIBILITY_PRIVATE).setPublicVersion(publicVersion).setContentIntent(intent)
             .setTimeoutAfter(Math.max(1,expires-now)).build();
         // Requests the strongest ordinary ongoing behavior. Android 14+ still permits
         // individual swipes while unlocked; no fake call/media style or repost loop.
