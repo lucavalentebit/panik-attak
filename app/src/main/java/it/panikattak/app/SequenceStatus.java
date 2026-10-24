@@ -57,7 +57,7 @@ final class SequenceStatus {
         waiting.sort(Comparator.comparingLong(r->r.nextAt));Run first=waiting.get(0);
         String title=waiting.size()==1?c.getString(R.string.sequence_running,Store.name(c,first.routine)):c.getString(R.string.sequences_running,waiting.size());
         String text=c.getString(R.string.sequence_next,Plan.NAMES[first.phase],Store.time(first.nextAt));
-        Intent open=new Intent(c,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        Intent open=new Intent(c,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra(MainActivity.OPEN_TODAY,true);
         if(waiting.size()==1)open.putExtra(ROUTINE,first.routine).putExtra("statusStart",first.start);
         PendingIntent intent=PendingIntent.getActivity(c,21,open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         Notification.InboxStyle lines=new Notification.InboxStyle();long expires=now;
@@ -74,7 +74,7 @@ final class SequenceStatus {
     }
     static void openFromNotification(MainActivity activity,Intent intent){
         String id=intent.getStringExtra(ROUTINE);if(id==null)return;
-        for(Run run:current(activity,System.currentTimeMillis()))if(run.routine.equals(id)&&run.start==intent.getLongExtra("statusStart",-1)){Store.select(activity,id);break;}
+        for(Run run:current(activity,System.currentTimeMillis()))if(run.routine.equals(id)&&run.start==intent.getLongExtra("statusStart",-1)){activity.openRoutine(id);break;}
         intent.removeExtra(ROUTINE);intent.removeExtra("statusStart");
     }
 }

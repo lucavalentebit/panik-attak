@@ -6,6 +6,8 @@ This document proposes V3 in **four implementation steps**. This session only de
 
 **Implementation update — 24 October 2026:** the user subsequently chose the notification improvement first. Build **3.0-alpha.2** delivers the notification portion of step 2: persisted running-occurrence state, a silent status between recalls, multi-routine summary, protected alarm actions and cleanup. Pages, event history, statistics and widget remain planned. The current summary opens the existing routine screen; Oggi navigation will follow with the page split. Android 14+ permits individual dismissal while unlocked, so the requested absolute swipe lock cannot be guaranteed. See [device verification](../TEST-REPORT-v3-notifications.md).
 
+**Navigation update — 24 October 2026:** build **3.0-alpha.3** implements the multi-page infrastructure: Oggi, Routine, routine detail, Abitudini placeholder, and **an empty Impostazioni page explicitly reserved for phase 3**. Oggi shows the earliest recall across enabled routines, ties, running occurrences and up to three other scheduled routines. Single-routine status notifications open the matching detail; summaries open Oggi. Back navigation, page/scroll restoration and portrait/landscape were tested on Samsung. Existing editors and permission controls remain in routine detail for now. Global settings, statistical history, widget and a future unified draft editor remain deferred; this does not claim every broader acceptance item below is complete. See [page verification](../TEST-REPORT-v3-pages.md).
+
 ## Direction
 
 V3 should answer four questions clearly: **What will happen next? Which routine controls it? How do I usually respond? Can I see the current state without opening the app?**
@@ -18,7 +20,7 @@ Keep the Italian interface, offline operation, multiple simultaneous routines, a
 | --- | --- | --- |
 | 1 | Separate pages and organize settings | Establish understandable navigation and ownership of controls. |
 | 2 | Explicit sequence state, ongoing notification, and event history | Give the app, notification, statistics, and widget the same reliable facts. |
-| 3 | Habits page with useful charts and session history | Build statistics on the events introduced in step 2. |
+| 3 | Habits charts, session history, and Settings controls | Build statistics on the events introduced in step 2; populate the Settings page reserved in Alpha 3. |
 | 4 | Home-screen widget and V3 integration checks | Reuse the same state and protected actions instead of creating another scheduler. |
 
 Steps 3 and 4 depend on step 2. Each step should leave a working app and have its own validation before moving on.
@@ -36,6 +38,8 @@ Use three bottom-navigation destinations with visible text labels:
 | Habits | **Abitudini** | Understand puzzle responses and sequence stopping patterns. |
 
 **Impostazioni** opens from a gear in the top app bar. Settings are infrequent maintenance, so they do not need a fourth bottom tab. Puzzle previews belong to the routine editor, not another top-level page. During step 1, Habits has an honest “history arrives with V3 tracking” empty state; no sample data presented as real history.
+
+Implementation scope agreed after planning: **leave the Settings body empty until phase 3**. Its header, Back behavior and route are ready. Keep existing permission/audio access in the routine detail and show the setup warning on Oggi when needed, so the placeholder does not remove essential controls.
 
 ```mermaid
 flowchart TD

@@ -15,6 +15,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
+    static final int TODAY=1,ROUTINES=2,HABITS=3,DETAIL=4,SETTINGS=5;
+    static final String OPEN_TODAY="openToday";
+    int destination=TODAY,settingsReturn=TODAY;
+    String detailRoutine;
+    AppShell shell;
+    androidx.activity.OnBackPressedCallback navigationBack;
+    final BroadcastReceiver pageUpdates=new BroadcastReceiver(){@Override public void onReceive(Context context,Intent intent){if(visible&&destination==TODAY)render();}};
+    boolean watchingUpdates;
     TextView countdown;long countdownAt;boolean visible;
     final Handler countdownHandler=new Handler(Looper.getMainLooper());
     final Runnable countdownTick=()->updateCountdown();
@@ -27,17 +35,27 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
         countdown.setContentDescription(countdownAt>0?"Tempo alla prossima sveglia: "+countdown.getText():"Routine in pausa");
         if(visible&&countdownAt>0)countdownHandler.postDelayed(countdownTick,1000-now%1000);
     }
-    @Override protected void onPause(){visible=false;countdownHandler.removeCallbacks(countdownTick);super.onPause();}
+    @Override protected void onPause(){visible=false;countdownHandler.removeCallbacks(countdownTick);if(watchingUpdates){unregisterReceiver(pageUpdates);watchingUpdates=false;}super.onPause();}
     Plan plan; int pendingEdit=-1;String pendingRoutine,pendingDelete;
-    @Override public void onCreate(Bundle b){super.onCreate(b);SequenceStatus.openFromNotification(this,getIntent());
+    @Override public void onCreate(Bundle b){super.onCreate(b);
+        if(b!=null){destination=b.getInt("page",TODAY);settingsReturn=b.getInt("settingsReturn",TODAY);detailRoutine=b.getString("detailRoutine");}
+        shell=new AppShell(this,b==null?null:b.getBundle("pageScroll"));
+        navigationBack=new androidx.activity.OnBackPressedCallback(destination!=TODAY){@Override public void handleOnBackPressed(){goBack();}};
+        getOnBackPressedDispatcher().addCallback(this,navigationBack);handleNavigationIntent(getIntent());
         getSupportFragmentManager().registerFragmentLifecycleCallbacks(new androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks(){
             @Override public void onFragmentStarted(androidx.fragment.app.FragmentManager manager,androidx.fragment.app.Fragment fragment){
                 if(fragment instanceof com.google.android.material.timepicker.MaterialTimePicker){var dialog=((com.google.android.material.timepicker.MaterialTimePicker)fragment).getDialog();if(dialog!=null){Ui.dialogButton(dialog.findViewById(com.google.android.material.R.id.material_timepicker_ok_button),true);Ui.dialogButton(dialog.findViewById(com.google.android.material.R.id.material_timepicker_cancel_button),false);}}
             }
         },false);
         if(b!=null){pendingEdit=b.getInt("pendingEdit",-1);pendingRoutine=b.getString("pendingRoutine");pendingDelete=b.getString("pendingDelete");}}
-    @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);SequenceStatus.openFromNotification(this,intent);if(!Store.prefs(this).getBoolean("ringing",false))render();}
-    @Override protected void onSaveInstanceState(Bundle out){out.putInt("pendingEdit",pendingEdit);out.putString("pendingRoutine",pendingRoutine);out.putString("pendingDelete",pendingDelete);super.onSaveInstanceState(out);}
+    void handleNavigationIntent(Intent intent){if(intent.getBooleanExtra(OPEN_TODAY,false)){destination=TODAY;intent.removeExtra(OPEN_TODAY);}SequenceStatus.openFromNotification(this,intent);}
+    @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);handleNavigationIntent(intent);if(!Store.prefs(this).getBoolean("ringing",false))render();}
+    @Override protected void onSaveInstanceState(Bundle out){shell.remember();out.putInt("page",destination);out.putInt("settingsReturn",settingsReturn);out.putString("detailRoutine",detailRoutine);out.putBundle("pageScroll",shell.positions);out.putInt("pendingEdit",pendingEdit);out.putString("pendingRoutine",pendingRoutine);out.putString("pendingDelete",pendingDelete);super.onSaveInstanceState(out);}
+    void navigate(int page){if(page<TODAY||page>HABITS)return;destination=page;render();}
+    void openRoutine(String id){if(!Store.exists(this,id))return;detailRoutine=id;Store.select(this,id);destination=DETAIL;if(shell!=null)render();}
+    void openSettings(){if(destination!=SETTINGS)settingsReturn=destination;destination=SETTINGS;render();}
+    void goBack(){if(destination==SETTINGS){destination=settingsReturn;render();}else if(destination==DETAIL)navigate(ROUTINES);else if(destination!=TODAY)navigate(TODAY);}
+    void chooseRoutine(List<TodayPage.Upcoming> routines){String[] names=new String[routines.size()];for(int i=0;i<names.length;i++)names[i]=routines.get(i).routine.name;Ui.dialog(this).setTitle(R.string.choose_routine).setItems(names,(d,n)->openRoutine(routines.get(n).routine.id)).setNegativeButton(R.string.cancel,null).show();}
     void requestEdit(int edit){
         if(Store.enabled(this)){pendingEdit=edit;pendingRoutine=Store.selected(this);startActivityForResult(ChallengeActivity.intent(this,ChallengeActivity.EDIT),81);}
         else openEditor(edit);
@@ -46,10 +64,13 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
     @Override protected void onActivityResult(int request,int result,Intent data){
         super.onActivityResult(request,result,data);
         if(request==81){int edit=pendingEdit;String id=pendingRoutine;pendingEdit=-1;pendingRoutine=null;
-            if(result==RESULT_OK&&id!=null&&Store.exists(this,id)&&!Store.prefs(this).getBoolean("ringing",false)){Store.select(this,id);openEditor(edit);}}
+            if(result==RESULT_OK&&id!=null&&Store.exists(this,id)&&!Store.prefs(this).getBoolean("ringing",false)){openRoutine(id);openEditor(edit);}}
         if(request==82){String id=pendingDelete;pendingDelete=null;if(result==RESULT_OK&&id!=null){Store.delete(this,id);Scheduler.schedule(this);render();}}
     }
-    @Override public void onResume(){super.onResume();visible=true;if(Store.prefs(this).getBoolean("ringing",false)){startActivity(new Intent(this,AlarmActivity.class));return;}Scheduler.schedule(this);render();}
+    @android.annotation.SuppressLint("UnspecifiedRegisterReceiverFlag")
+    @Override public void onResume(){super.onResume();visible=true;
+        if(!watchingUpdates){if(Build.VERSION.SDK_INT>=33)registerReceiver(pageUpdates,new IntentFilter("it.panikattak.REFRESH"),Context.RECEIVER_NOT_EXPORTED);else registerReceiver(pageUpdates,new IntentFilter("it.panikattak.REFRESH"));watchingUpdates=true;}
+        if(Store.prefs(this).getBoolean("ringing",false)){startActivity(new Intent(this,AlarmActivity.class));return;}Scheduler.schedule(this);render();}
     void activate(){activate(Store.selected(this));}
     void activate(String routine){
         if(!Store.exists(this,routine))return;
@@ -71,9 +92,26 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
         Toast.makeText(this,"Sequenza attiva · suoneria accesa · Non disturbare invariato",Toast.LENGTH_LONG).show();
     }
     void render(){
-        plan=Store.plan(this);LinearLayout page=Ui.shell(this,true);
-        LinearLayout brand=Ui.row(this);TextView logo=Ui.bold(this,"ϟ",32,Ui.LIME);brand.addView(logo);LinearLayout brandText=Ui.column(this);brandText.setPadding(Ui.dp(this,12),0,0,0);brandText.addView(Ui.bold(this,"Panik Attak",23,Ui.TEXT));Ui.space(brandText,5);TextView tag=Ui.text(this,"IL LETTO HA PERSO.",10,Ui.MUTED);tag.setLetterSpacing(.14f);brandText.addView(tag);Ui.weighted(brand,brandText);page.addView(brand);Ui.space(page,28);
-        RoutineUi.add(this,page);
+        if(shell==null)return;
+        countdownHandler.removeCallbacks(countdownTick);countdown=null;countdownAt=0;
+        if(destination<TODAY||destination>SETTINGS)destination=TODAY;
+        if(destination==DETAIL&&!Store.exists(this,detailRoutine))destination=ROUTINES;
+        if(destination==DETAIL)Store.select(this,detailRoutine);
+        plan=Store.plan(this);int tab=destination==SETTINGS?settingsReturn:destination;if(tab==DETAIL||tab==SETTINGS)tab=ROUTINES;
+        String title=destination==DETAIL?Store.name(this,detailRoutine):destination==SETTINGS?getString(R.string.page_settings):"Panik Attak";
+        LinearLayout page=shell.show(destination==DETAIL?"routine:"+detailRoutine:"page:"+destination,title,destination==DETAIL||destination==SETTINGS,tab);
+        navigationBack.setEnabled(destination!=TODAY);
+        switch(destination){
+            case TODAY:TodayPage.add(this,page);break;
+            case ROUTINES:RoutineUi.add(this,page);break;
+            case HABITS:PlaceholderPages.habits(this,page);break;
+            case SETTINGS:PlaceholderPages.settings(this,page);break;
+            case DETAIL:renderRoutineDetail(page);break;
+        }
+        updateCountdown();
+    }
+    void renderRoutineDetail(LinearLayout page){
+        page.addView(Ui.button(this,getString(R.string.manage_routine),Ui.CARD,Ui.TEXT,()->RoutineUi.manage(this)));Ui.space(page,20);
         LinearLayout heading=Ui.row(this);Ui.weighted(heading,Ui.bold(this,"Il tuo prossimo risveglio",14,Ui.MUTED));TextView status=Ui.bold(this,Store.enabled(this)?"●  ATTIVA":"○  IN PAUSA",10,Store.enabled(this)?Ui.LIME:Ui.MUTED);heading.addView(status);page.addView(heading);Ui.space(page,12);
         LinearLayout hero=Ui.card(this,Ui.LIME);
         String selected=Store.selected(this);

@@ -90,3 +90,15 @@ Il tocco su una singola routine seleziona quella corrispondente, verificando che
 Entrambe le notifiche richiedono `FLAG_ONGOING_EVENT` e `FLAG_NO_CLEAR`. Android 14+ permette comunque di rimuoverle individualmente a telefono sbloccato; non vengono usati stili chiamata/media fittizi o cicli di ripubblicazione. La rimozione della scheda non cambia coda, puzzle o pianificazione. Fonte: [Android — non-dismissible notifications](https://developer.android.com/about/versions/14/behavior-changes-all#non-dismissable-notifications).
 
 `NotificationSmoke` verifica il ciclo di vita e la consegna reale. Se Samsung non espone il testo nella gerarchia accessibile, il parametro `-e swipeY <pixel>` permette un gesto sulla posizione prima verificata nella schermata `notification-before-swipe.png`; non usare coordinate non controllate. Il runner ripristina le preferenze, come `RoutineSmoke`. Risultati e limiti nel [rapporto Alpha 2](../TEST-REPORT-v3-notifications.md).
+
+## Versione 3.0 Alpha 3 — infrastruttura delle pagine
+
+`AppShell` mantiene barra superiore, contenuto scorrevole e navigazione Material con Oggi, Routine e Abitudini. `MainActivity` gestisce le destinazioni e il dettaglio della routine, conserva destinazione, ID, origine di Impostazioni e posizioni di scorrimento nel saved state. Il ripristino dello scroll attende il layout e non viene sovrascritto dal render successivo in `onResume`. Le schermate allarme e puzzle restano separate, senza barra inferiore.
+
+`TodayPage` calcola il prossimo richiamo per ogni routine abilitata, ordina per orario e raggruppa gli ex aequo. Non cambia la routine selezionata. Mostra le occorrenze in corso da `SequenceStatus` e riceve gli aggiornamenti dell’allarme mentre è visibile. Il conto alla rovescia rimane limitato alla schermata visibile; Abitudini e Impostazioni non avviano un timer.
+
+`RoutineUi` mostra lista, interruttori indipendenti, prossimi orari e gestione per riga. Il tocco apre il dettaglio della routine corretta, mantenendo i precedenti editor, controlli dei permessi, anteprime e protezioni. Una nuova routine o copia apre il proprio dettaglio e parte in pausa. Il nuovo contenitore non introduce un nuovo sistema di salvataggio delle bozze degli editor.
+
+`PlaceholderPages` contiene Abitudini senza dati fittizi e la pagina Impostazioni con corpo vuoto, riservata alla fase 3. Le notifiche singole aprono il dettaglio verificando l’identità dell’occorrenza; il riepilogo apre Oggi. Il comportamento dello swipe non viene modificato in questa versione.
+
+Test sul Samsung: 36 verifiche di navigazione (`NavigationSmoke`), 35 sulle routine e consegne simultanee (`RoutineSmoke`), 6 sul countdown nel dettaglio (`CountdownSmoke`). [Rapporto completo](../TEST-REPORT-v3-pages.md).
