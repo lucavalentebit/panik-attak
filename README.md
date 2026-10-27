@@ -6,7 +6,11 @@ Una sveglia Android che accompagna il risveglio con richiami progressivi e puzzl
 
 **Android 8+ · In italiano · Offline · Nessun account · Nessuna pubblicità**
 
-[Scarica Alpha 5](https://github.com/lucavalentebit/panik-attak/releases/tag/v3.0-alpha.5) · [APK nella repository](Panik-Attak.apk) · [Dettagli tecnici](docs/TECHNICAL.md) · [Piano V3](docs/V3-PLAN.md)
+[Scarica Alpha 6](https://github.com/lucavalentebit/panik-attak/releases/tag/v3.0-alpha.6) · [APK nella repository](Panik-Attak.apk) · [Dettagli tecnici](docs/TECHNICAL.md) · [Piano V3](docs/V3-PLAN.md)
+
+## Novità di Alpha 6 — prova riconoscimento oggetti
+
+In **Impostazioni → Prove sperimentali** puoi fotografare un oggetto nell’app e vedere se il modello locale riconosce posate, tazze o sedie. La foto rimane sul telefono e questa prova non cambia le sveglie. Il modello non verifica quante gambe abbia una sedia. La funzione richiede ancora prove fotografiche su telefoni reali: [note di rilascio](RELEASE-NOTES-alpha6.md) e [dettagli del modello](docs/OBJECT-TEST.md).
 
 ## Novità di Alpha 5 — Abitudini
 

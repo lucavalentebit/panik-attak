@@ -93,4 +93,7 @@
     <string name="routines_waiting">Altri richiami in attesa: %1$d</string>
     <string name="routine_summary">%1$s · %2$s</string>
     <string-array name="routine_days"><item>Lun</item><item>Mar</item><item>Mer</item><item>Gio</item><item>Ven</item><item>Sab</item><item>Dom</item></string-array>
+    <string name="object_test_section">Prove sperimentali</string>
+    <string name="object_test_hint">Prova il riconoscimento degli oggetti con una foto scattata nell’app. Non cambia le sveglie.</string>
+    <string name="object_test_open">Prova la fotocamera ↗</string>
 </resources>

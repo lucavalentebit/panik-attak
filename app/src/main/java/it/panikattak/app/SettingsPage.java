@@ -73,6 +73,9 @@ final class SettingsPage {
         boolean unrestricted=a.getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(a.getPackageName());
         link(a,reliability,R.string.settings_battery,a.getString(unrestricted?R.string.settings_battery_exempt:R.string.settings_battery_check),Target.BATTERY);Ui.space(reliability,8);reliability.addView(Ui.text(a,a.getString(R.string.settings_battery_hint),12,Ui.MUTED));
         HabitsPage.settings(a,page);
+        LinearLayout experiments=section(a,page,R.string.object_test_section);
+        experiments.addView(Ui.text(a,a.getString(R.string.object_test_hint),12,Ui.MUTED));Ui.space(experiments,12);
+        experiments.addView(Ui.button(a,a.getString(R.string.object_test_open),Ui.LIME,Ui.INK,()->a.startActivity(new Intent(a,ObjectTestActivity.class))));
         try{TextView version=Ui.text(a,"Panik Attak · "+a.getPackageManager().getPackageInfo(a.getPackageName(),0).versionName,12,Ui.MUTED);version.setGravity(Gravity.CENTER);page.addView(version);}catch(android.content.pm.PackageManager.NameNotFoundException ignored){}
     }
 }

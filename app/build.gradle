@@ -2,8 +2,12 @@ plugins { id 'com.android.application' }
 android {
     namespace 'it.panikattak.app'
     compileSdk 35
-    defaultConfig { applicationId 'it.panikattak.app'; minSdk 26; targetSdk 35; versionCode 11; versionName '3.0-alpha.5'; testInstrumentationRunner project.findProperty('testRunner') ?: 'it.panikattak.app.AlarmSmoke' }
+    androidResources { noCompress 'tflite' }
+    defaultConfig { applicationId 'it.panikattak.app'; minSdk 26; targetSdk 35; versionCode 12; versionName '3.0-alpha.6'; testInstrumentationRunner project.findProperty('testRunner') ?: 'it.panikattak.app.AlarmSmoke' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 
-dependencies { implementation 'com.google.android.material:material:1.12.0' }
+dependencies {
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'org.tensorflow:tensorflow-lite:2.14.0'
+}
