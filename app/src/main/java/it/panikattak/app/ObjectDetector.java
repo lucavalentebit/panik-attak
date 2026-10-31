@@ -20,7 +20,7 @@ final class ObjectDetector implements AutoCloseable {
             interpreter=new Interpreter(model,new Interpreter.Options().setNumThreads(2));
         }
     }
-    String detect(Bitmap original){
+    ObjectRecognition.Result detect(Bitmap original,ObjectRecognition.Cutlery target){
         Bitmap image=Bitmap.createScaledBitmap(original,SIZE,SIZE,true);
         ByteBuffer input=ByteBuffer.allocateDirect(SIZE*SIZE*3).order(ByteOrder.nativeOrder());
         int[] pixels=new int[SIZE*SIZE];image.getPixels(pixels,0,SIZE,0,0,SIZE,SIZE);
@@ -33,7 +33,7 @@ final class ObjectDetector implements AutoCloseable {
         java.util.Map<Integer,Object> outputs=new java.util.HashMap<>();
         outputs.put(0,boxes);outputs.put(1,classes);outputs.put(2,scores);outputs.put(3,count);
         interpreter.runForMultipleInputsOutputs(new Object[]{input},outputs);
-        return ObjectRecognition.describe(classes[0],scores[0],(int)count[0]);
+        return ObjectRecognition.evaluate(target,classes[0],scores[0],(int)count[0]);
     }
     @Override public void close(){interpreter.close();}
 }

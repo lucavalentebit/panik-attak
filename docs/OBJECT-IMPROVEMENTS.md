@@ -1,5 +1,7 @@
 # Riconoscere forchetta, cucchiaio, coltello e cialda di caffè
 
+> Proposta della Alpha 6.1, conservata come riferimento storico. Dalla Alpha 6.2 la prova è limitata a forchetta, cucchiaio e coltello; il modello a quattro classi descritto qui non è stato implementato. Per il comportamento attuale vedere [Prova delle posate](OBJECT-TEST.md).
+
 ## Cosa cambia subito
 
 - Anteprima in `TextureView`, senza lo sfondo opaco che poteva coprire il video. Mantiene le proporzioni e abilita lo scatto dopo l’arrivo di un fotogramma.

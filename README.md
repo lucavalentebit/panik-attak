@@ -6,15 +6,19 @@ Una sveglia Android che accompagna il risveglio con richiami progressivi e puzzl
 
 **Android 8+ · In italiano · Offline · Nessun account · Nessuna pubblicità**
 
-[Scarica Alpha 6.1](https://github.com/lucavalentebit/panik-attak/releases/tag/v3.0-alpha.6.1) · [APK nella repository](Panik-Attak.apk) · [Dettagli tecnici](docs/TECHNICAL.md) · [Piano V3](docs/V3-PLAN.md)
+[Scarica Alpha 6.2](https://github.com/lucavalentebit/panik-attak/releases/tag/v3.0-alpha.6.2) · [APK nella repository](Panik-Attak.apk) · [Dettagli tecnici](docs/TECHNICAL.md) · [Piano V3](docs/V3-PLAN.md)
+
+## Novità di Alpha 6.2 — prova delle posate a caso
+
+In **Impostazioni → Prove sperimentali → Prova le posate**, l’app chiede una **forchetta**, un **cucchiaio** oppure un **coltello** scelto a caso. Per superare la prova occorre fotografare la posata richiesta. Riprova mantiene la stessa richiesta; dopo il successo Prossima posata ne estrae una diversa. Le altre categorie sono escluse dalla prova e dai risultati. Anteprima e luce automatica restano disponibili. [Note dell’aggiornamento](RELEASE-NOTES-alpha6.2.md) e [regole della prova](docs/OBJECT-TEST.md).
 
 ## Correzioni fotocamera — Alpha 6.1
 
-Anteprima visibile prima dello scatto, luce continua accesa dove disponibile (altrimenti flash allo scatto), pulsante per spegnerla e risultati distinti per forchetta, cucchiaio e coltello. Il modello attuale non riconosce le cialde di caffè: il [piano per le quattro categorie](docs/OBJECT-IMPROVEMENTS.md) descrive dati, addestramento e verifiche necessari. [Note dell’aggiornamento](RELEASE-NOTES-alpha6.1.md).
+Anteprima visibile prima dello scatto, luce continua accesa dove disponibile (altrimenti flash allo scatto), pulsante per spegnerla e risultati distinti per forchetta, cucchiaio e coltello. Il funzionamento sulle posate è stato confermato dall’utente. [Note dell’aggiornamento](RELEASE-NOTES-alpha6.1.md).
 
 ## Novità di Alpha 6 — prova riconoscimento oggetti
 
-In **Impostazioni → Prove sperimentali** puoi fotografare un oggetto nell’app e vedere se il modello locale riconosce posate, tazze o sedie. La foto rimane sul telefono e questa prova non cambia le sveglie. Il modello non verifica quante gambe abbia una sedia. La funzione richiede ancora prove fotografiche su telefoni reali: [note di rilascio](RELEASE-NOTES-alpha6.md) e [dettagli del modello](docs/OBJECT-TEST.md).
+La prima prova fotografica locale è stata introdotta nella Alpha 6. Dalla Alpha 6.2 la schermata è dedicata alle sole posate. La foto rimane sul telefono e questa prova non cambia le sveglie. [Note storiche della Alpha 6](RELEASE-NOTES-alpha6.md) e [dettagli della prova attuale](docs/OBJECT-TEST.md).
 
 ## Novità di Alpha 5 — Abitudini
 

@@ -20,6 +20,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -29,9 +30,12 @@ public final class ObjectTestActivity extends Activity implements TextureView.Su
     private static final int CAMERA_REQUEST=31;
     private final Handler main=new Handler(Looper.getMainLooper());
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
+    private final Random random=new Random();
     private TextureView preview;
     private ImageView photo;
-    private TextView status,result,shoot,light;
+    private TextView status,result,shoot,light,targetPrompt;
+    private ObjectRecognition.Cutlery target;
+    private boolean challengePassed;
     private Camera camera;
     private ObjectDetector detector;
     private boolean resumed,busy,analyzing,previewReady,permissionPending,lightEnabled=true;
@@ -42,10 +46,13 @@ public final class ObjectTestActivity extends Activity implements TextureView.Su
 
     @Override public void onCreate(Bundle state){super.onCreate(state);
         if(state!=null)lightEnabled=state.getBoolean("lightEnabled",true);
+        target=ObjectRecognition.restoreTarget(state==null?null:state.getString("cutleryTarget"),random);
         LinearLayout page=Ui.shell(this,true);
         page.addView(Ui.button(this,"←  Indietro",Ui.CARD,Ui.TEXT,this::finish));Ui.space(page,20);
-        page.addView(Ui.bold(this,"Riconosci un oggetto",25,Ui.TEXT));Ui.space(page,10);
-        page.addView(Ui.text(this,"Inquadra una forchetta, un cucchiaio, un coltello, una tazza o una sedia. Tieni l’oggetto intero nell’anteprima e avvicinati senza tagliarlo.",14,Ui.MUTED));Ui.space(page,18);
+        page.addView(Ui.bold(this,"Trova la posata",25,Ui.TEXT));Ui.space(page,10);
+        page.addView(Ui.text(this,"Una posata a caso tra forchetta, cucchiaio e coltello. Fotografa quella richiesta per superare la prova.",14,Ui.MUTED));Ui.space(page,14);
+        targetPrompt=Ui.bold(this,target.prompt(),21,Ui.LIME);page.addView(targetPrompt);Ui.space(page,8);
+        page.addView(Ui.text(this,"Inquadra una sola posata, intera e ben visibile.",13,Ui.MUTED));Ui.space(page,18);
         FrameLayout frame=new FrameLayout(this);frame.setBackgroundColor(Ui.CARD);
         page.addView(frame,new LinearLayout.LayoutParams(-1,Ui.dp(this,260)));
         // A TextureView participates in normal view composition. An opaque background
@@ -59,9 +66,9 @@ public final class ObjectTestActivity extends Activity implements TextureView.Su
         Ui.space(page,12);shoot=Ui.button(this,"Avvio fotocamera…",Ui.LIME,Ui.INK,this::capture);shoot.setEnabled(false);page.addView(shoot);
         Ui.space(page,12);status=Ui.text(this,"Avvio dell’anteprima…",13,Ui.MUTED);page.addView(status);
         Ui.space(page,12);result=Ui.bold(this,"",16,Ui.TEXT);page.addView(result);
-        Ui.space(page,20);page.addView(Ui.text(this,"Prova sperimentale: il modello può sbagliare. Le cialde di caffè non sono ancora supportate. Per le sedie non verifica il numero delle gambe. Le foto vengono analizzate sul telefono e non vengono salvate nello storico.",12,Ui.MUTED));
+        Ui.space(page,20);page.addView(Ui.text(this,"Prova sperimentale: il modello può sbagliare. Questa prova non modifica le sveglie. Le foto vengono analizzate sul telefono e non vengono salvate nello storico.",12,Ui.MUTED));
     }
-    @Override protected void onSaveInstanceState(Bundle state){state.putBoolean("lightEnabled",lightEnabled);super.onSaveInstanceState(state);}
+    @Override protected void onSaveInstanceState(Bundle state){state.putBoolean("lightEnabled",lightEnabled);state.putString("cutleryTarget",target.name());super.onSaveInstanceState(state);}
     @Override protected void onResume(){super.onResume();resumed=true;startCamera();}
     @Override protected void onPause(){resumed=false;releaseCamera();if(!analyzing)busy=false;super.onPause();}
     @Override protected void onDestroy(){main.removeCallbacksAndMessages(null);worker.execute(()->{if(detector!=null)detector.close();});worker.shutdown();super.onDestroy();}
@@ -72,7 +79,7 @@ public final class ObjectTestActivity extends Activity implements TextureView.Su
         if(camera!=null&&resumed&&!busy&&!previewReady){
             if(previewTimeout!=null)main.removeCallbacks(previewTimeout);
             previewReady=true;shoot.setText("Scatta la foto");shoot.setEnabled(true);
-            status.setText("Fotocamera pronta. Inquadra l’oggetto intero.");updateLight();
+            status.setText("Fotocamera pronta. Inquadra la posata richiesta.");updateLight();
         }
     }
 
@@ -176,6 +183,8 @@ public final class ObjectTestActivity extends Activity implements TextureView.Su
     private void capture(){
         if(busy)return;
         if(photo.getVisibility()==View.VISIBLE){
+            if(challengePassed){target=ObjectRecognition.nextTarget(random,target);targetPrompt.setText(target.prompt());}
+            challengePassed=false;
             photo.setImageDrawable(null);photo.setVisibility(View.GONE);result.setText("");startCamera();return;
         }
         if(camera==null){startCamera();return;}
@@ -202,9 +211,10 @@ public final class ObjectTestActivity extends Activity implements TextureView.Su
         });}catch(RuntimeException error){cameraFailure("Scatto non riuscito. Tocca Riprova fotocamera.");}
     }
     private void analyze(byte[] bytes){
+        ObjectRecognition.Cutlery requested=target;
         // Decode, rotate and infer off the UI thread; retain enough detail for thin cutlery.
         worker.execute(()->{
-            Bitmap bitmap=null;String outcome;
+            Bitmap bitmap=null;ObjectRecognition.Result outcome;
             try{
                 BitmapFactory.Options options=new BitmapFactory.Options();options.inJustDecodeBounds=true;
                 BitmapFactory.decodeByteArray(bytes,0,bytes.length,options);options.inJustDecodeBounds=false;options.inSampleSize=1;
@@ -223,15 +233,16 @@ public final class ObjectTestActivity extends Activity implements TextureView.Su
                     case ExifInterface.ORIENTATION_ROTATE_270:rotation.setRotate(-90);break;
                 }
                 if(!rotation.isIdentity()){Bitmap rotated=Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(),bitmap.getHeight(),rotation,true);if(rotated!=bitmap)bitmap.recycle();bitmap=rotated;}
-                if(detector==null)detector=new ObjectDetector(this);outcome=detector.detect(bitmap);
-            }catch(Exception error){outcome="Riconoscimento non riuscito. Scatta un’altra foto.";}
-            Bitmap photograph=bitmap;String message=outcome;
+                if(detector==null)detector=new ObjectDetector(this);outcome=detector.detect(bitmap,requested);
+            }catch(Exception error){outcome=new ObjectRecognition.Result(false,"Riconoscimento non riuscito. Scatta un’altra foto della posata richiesta.");}
+            Bitmap photograph=bitmap;ObjectRecognition.Result evaluation=outcome;
             runOnUiThread(()->{
                 if(isDestroyed()||isFinishing()){if(photograph!=null)photograph.recycle();return;}
                 analyzing=false;busy=false;
+                challengePassed=evaluation.passed;
                 if(photograph!=null){photo.setImageBitmap(photograph);photo.setVisibility(View.VISIBLE);}
-                result.setText(message);status.setText(photograph!=null?"Foto analizzata sul dispositivo.":"Impossibile leggere la foto.");
-                shoot.setText(photograph!=null?"Nuova foto":"Riprova fotocamera");shoot.setEnabled(true);
+                result.setText(evaluation.message);status.setText(photograph!=null?"Foto analizzata sul dispositivo.":"Impossibile leggere la foto.");
+                shoot.setText(photograph!=null?(challengePassed?"Prossima posata":"Riprova la foto"):"Riprova fotocamera");shoot.setEnabled(true);
             });
         });
     }

@@ -64,28 +64,34 @@ public final class ObjectCameraSmoke extends Instrumentation {
         try{
             screen=(ObjectTestActivity)startActivitySync(new Intent(getTargetContext(),ObjectTestActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             await("camera enables capture only after a frame",this::ready);visiblePreview();screenshot("object-camera-preview");
+            ObjectRecognition.Cutlery initialTarget=(ObjectRecognition.Cutlery)field("target");
+            check(text("targetPrompt").equals(initialTarget.prompt()),"requested cutlery is shown before capture");
             boolean supported=(Boolean)field("flashAvailable");
             if(supported){
                 String mode=configuredLight();check(Camera.Parameters.FLASH_MODE_TORCH.equals(mode)||Camera.Parameters.FLASH_MODE_ON.equals(mode),"light enabled by default where supported");
                 click("light");check(Camera.Parameters.FLASH_MODE_OFF.equals(configuredLight()),"light can be switched off");
                 click("light");check(!Camera.Parameters.FLASH_MODE_OFF.equals(configuredLight()),"light can be switched back on");
             }else check(text("light").equals("Flash non disponibile"),"camera without flash remains usable");
-            click("shoot");await("photo captured and analyzed locally",()->text("shoot").equals("Nuova foto"));
+            click("shoot");await("photo captured and analyzed locally",()->text("shoot").equals("Riprova la foto")||text("shoot").equals("Prossima posata"));
             ImageView photo=(ImageView)field("photo");boolean[] shown=new boolean[1];runOnMainSync(()->shown[0]=photo.getVisibility()==View.VISIBLE&&photo.getDrawable()!=null);
             check(shown[0],"captured photograph is visible");check(field("camera")==null,"camera and illumination released after capture");
             check(text("result").contains("Rilevazioni:"),"TensorFlow Lite returns a recognition result");screenshot("object-camera-result");
+            boolean passed=(Boolean)field("challengePassed");
             click("shoot");await("new photo restarts preview",this::ready);check(text("result").isEmpty(),"new capture clears old recognition");visiblePreview();
+            check(passed?field("target")!=initialTarget:field("target")==initialTarget,"success draws a new target; retry keeps the requested cutlery");
             runOnMainSync(()->callActivityOnPause(screen));check(field("camera")==null,"background releases camera");
             runOnMainSync(()->callActivityOnResume(screen));await("foreground restores preview",this::ready);
             // Interrupt autofocus before its callback; stale callbacks must not take a photo.
             View shoot=(View)field("shoot");runOnMainSync(()->{shoot.performClick();callActivityOnPause(screen);callActivityOnResume(screen);});
             await("interrupted capture can resume",this::ready);visiblePreview();
             if(supported)click("light");
+            Object targetBeforeRotation=field("target");
             ActivityMonitor monitor=addMonitor(ObjectTestActivity.class.getName(),null,false);
             ObjectTestActivity previous=screen;runOnMainSync(()->previous.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
             Activity replacement=waitForMonitorWithTimeout(monitor,15000);removeMonitor(monitor);
             check(replacement instanceof ObjectTestActivity&&replacement!=previous,"activity recreated");screen=(ObjectTestActivity)replacement;
             await("recreated activity restores camera",this::ready);visiblePreview();
+            check(field("target")==targetBeforeRotation,"requested cutlery survives rotation");
             if(supported)check(Camera.Parameters.FLASH_MODE_OFF.equals(configuredLight()),"light preference survives rotation");
             check(before.equals(Store.prefs(getTargetContext()).getAll()),"camera experiment preserves alarm preferences");
             out.putString("stream","PASS: "+checks+" object camera checks. Physical flash and target accuracy require a real phone.\n");code=Activity.RESULT_OK;
