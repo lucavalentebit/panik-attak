@@ -8,6 +8,14 @@ Una sveglia Android che accompagna il risveglio con richiami progressivi e puzzl
 
 [Scarica Alpha 6.2](https://github.com/lucavalentebit/panik-attak/releases/tag/v3.0-alpha.6.2) · [APK nella repository](Panik-Attak.apk) · [Dettagli tecnici](docs/TECHNICAL.md) · [Piano V3](docs/V3-PLAN.md)
 
+## Alpha 7 — Trova la posata come sfida della sveglia
+
+Nel dettaglio di una routine, **Puzzle della sequenza → Trova la posata** permette di usare la fotocamera per risolvere i richiami. L’app chiede una forchetta, un cucchiaio o un coltello casuale; dopo il riconoscimento torna alla sveglia e premi **Spegni solo questa**. Lo stesso tipo è disponibile per Ferma la mattina, pausa, modifica protetta e anteprime.
+
+La richiesta resta la stessa quando riprovi o ruoti il telefono. Se non puoi usare la fotocamera, scegli **Alternativa · Matematica difficile**: occorre comunque risolvere una sfida. Il suono continua finché il richiamo non viene chiuso. Le foto vengono elaborate sul telefono e non vengono salvate. La prova indipendente nelle Impostazioni resta disponibile. [Note Alpha 7](RELEASE-NOTES-alpha7.md) e [guida delle posate](docs/OBJECT-TEST.md).
+
+La compilazione Alpha 7 è pronta; la pubblicazione dell’APK aggiornabile dalla Alpha 6.2 richiede il suo keystore originale. Finché la firma non viene recuperata, il download e l’APK nella radice restano Alpha 6.2.
+
 ## Novità di Alpha 6.2 — prova delle posate a caso
 
 In **Impostazioni → Prove sperimentali → Prova le posate**, l’app chiede una **forchetta**, un **cucchiaio** oppure un **coltello** scelto a caso. Per superare la prova occorre fotografare la posata richiesta. Riprova mantiene la stessa richiesta; dopo il successo Prossima posata ne estrae una diversa. Le altre categorie sono escluse dalla prova e dai risultati. Anteprima e luce automatica restano disponibili. [Note dell’aggiornamento](RELEASE-NOTES-alpha6.2.md) e [regole della prova](docs/OBJECT-TEST.md).
@@ -70,7 +78,7 @@ Puoi personalizzare durata e intervallo di ogni fase. Le prime tre supportano an
 - Attivane più di una: i richiami coincidenti vengono mantenuti separatamente.
 - Mettere in pausa una routine o fermarne la mattina lascia funzionare le altre.
 
-## Cinque modi per svegliarsi
+## Sei modi per svegliarsi
 
 | Puzzle | La sfida |
 | --- | --- |
@@ -79,6 +87,7 @@ Puoi personalizzare durata e intervallo di ogni fase. Le prime tre supportano an
 | Trova l’intruso | Individua il simbolo diverso. |
 | Ordinamento | Trascina numeri o emozioni nell’ordine corretto. |
 | Tocca la sequenza | Ripeti i passi su una griglia. |
+| Trova la posata | Fotografa la forchetta, il cucchiaio o il coltello richiesto; Matematica difficile è l’alternativa. |
 
 L’ordinamento segue il dito e anima lo scambio. Puoi anche toccare due tessere per scambiarle. Le anteprime permettono di provare i puzzle senza modificare le sveglie.
 
@@ -128,5 +137,6 @@ Sviluppata e provata sul Samsung SM-S938B con Android 16. I rapporti descrivono 
 - [Navigazione e pagine — 3.0 Alpha 3](TEST-REPORT-v3-pages.md)
 - [Impostazioni essenziali — 3.0 Alpha 4](TEST-REPORT-v3-settings.md)
 - [Statistiche e storico — 3.0 Alpha 5](TEST-REPORT-v3-habits.md)
+- [Sfida fotografica — 3.0 Alpha 7](TEST-REPORT-v3-object-challenge.md)
 
 Le impostazioni necessarie alle sveglie rimangono sul dispositivo; l’app non richiede un account né una connessione internet.

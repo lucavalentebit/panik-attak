@@ -46,7 +46,7 @@ public class GateSmoke extends Instrumentation {
             int hour=Store.plan(c).hour;final ChallengeActivity edit=screen;runOnMainSync(edit::finish);waitForIdleSync();
             check(Store.plan(c).hour==hour&&owner.pendingEdit==-1,"cancelled edit keeps original plan");
             // Exercise all renderers through the same pause boundary, including wrong responses.
-            for(int type=0;type<5;type++){
+            for(int type=0;type<=Puzzle.CAMERA;type++){
                 prefs.edit().putInt("puzzleType",type).putBoolean("enabled",true).putBoolean("ringing",false).commit();
                 screen=open(c,ChallengeActivity.PAUSE);final ChallengeActivity visual=screen;
                 check(visual.challenge.type==type&&visual.challenge.level==2,"selected difficult puzzle type");

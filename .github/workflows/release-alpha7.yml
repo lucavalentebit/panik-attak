@@ -1,0 +1,33 @@
+name: Publish Panik Attak Alpha 7
+
+on:
+  push:
+    tags:
+      - v3.0-alpha.7
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify APK checksum, version and update signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum -c Panik-Attak.apk.sha256
+          tools="$ANDROID_HOME/build-tools/35.0.0"
+          "$tools/aapt" dump badging Panik-Attak.apk | grep -F "versionCode='15' versionName='3.0-alpha.7'"
+          "$tools/apksigner" verify --print-certs Panik-Attak.apk | grep -F 'Signer #1 certificate SHA-256 digest: 12b4d56e7d15448031ffda1c109af7763503f6d9b297ad1eb7686c82bc3340e0'
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          Panik-Attak.apk Panik-Attak.apk.sha256
+          --repo "$GITHUB_REPOSITORY"
+          --verify-tag --prerelease
+          --title "Panik Attak 3.0 Alpha 7"
+          --notes-file RELEASE-NOTES-alpha7.md

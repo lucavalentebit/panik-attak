@@ -2,7 +2,20 @@
 
 Da **Impostazioni → Prove sperimentali → Prova le posate**, l’app estrae a caso una delle tre richieste: **fotografa una forchetta**, **fotografa un cucchiaio** o **fotografa un coltello**. La richiesta appare sopra l’anteprima. Inquadrare una sola posata, intera e ben visibile.
 
-La luce continua parte accesa dove disponibile, con ripiego sul flash allo scatto. Il pulsante Luce permette di spegnerla per ridurre i riflessi. La luce si spegne dopo lo scatto e quando si lascia la schermata. La prova è indipendente dalle sveglie e non sblocca puzzle; la foto resta in memoria e non viene caricata su un server o scritta nello storico.
+La luce continua parte accesa dove disponibile, con ripiego sul flash allo scatto. Il pulsante Luce permette di spegnerla per ridurre i riflessi. La luce si spegne dopo lo scatto e quando si lascia la schermata. La prova nelle Impostazioni è indipendente dalle sveglie; la foto resta in memoria e non viene caricata su un server o scritta nello storico.
+
+## Sfida della sveglia — Alpha 7
+
+Da **Routine → dettaglio della routine → Puzzle della sequenza → Trova la posata**, la stessa fotocamera diventa una sfida disponibile per i richiami, Ferma la mattina, pausa e modifica protetta. **Prova il puzzle** permette di provarla senza modificare le sveglie.
+
+- La categoria richiesta è parte della sfida salvata: non cambia dopo un errore, rotazione, riapertura della fotocamera o ricreazione dell’attività. Un nuovo richiamo genera una nuova sfida.
+- **Apri fotocamera** mostra la richiesta e avvia la stessa acquisizione e analisi locale delle Impostazioni. Solo un riconoscimento positivo restituisce una soluzione alla schermata chiamante.
+- Per un richiamo, il successo abilita **Spegni solo questa**. Il suono continua fino alla conferma; le altre routine restano indipendenti. Nelle azioni protette, il successo applica l’azione richiesta come per gli altri puzzle.
+- Indietro, permesso negato, foto sbagliata o errore della fotocamera non risolvono la sfida. **Alternativa · Matematica difficile** richiede sempre una moltiplicazione seguita da somma, anche per un richiamo semplice; evita di dipendere dalla disponibilità della fotocamera o dalla precisione del modello.
+- Tutti i livelli fotografici richiedono una sola posata. I livelli non aumentano il numero di foto o le soglie del modello. Le protezioni mantengono il livello massimo e l’alternativa matematica difficile.
+- Risultati fotografici riferiti a un puzzle precedente vengono scartati. Anche la conferma finale ricontrolla routine, richiamo e sfida correnti.
+
+Le foto non sono persistite. Lo storico delle sequenze reali conserva il tipo di sfida e gli eventi di soluzione/conferma, secondo le impostazioni esistenti; non conserva foto, risposte o punteggi del modello. Le anteprime e le prove restano escluse. [Verifiche e limiti Alpha 7](../TEST-REPORT-v3-object-challenge.md).
 
 ## Regole
 

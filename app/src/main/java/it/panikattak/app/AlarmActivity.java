@@ -23,6 +23,7 @@ public class AlarmActivity extends Activity {
     @Override public void onResume(){super.onResume();refresh();if(puzzleView!=null){puzzleView.resume();HabitHistory.current(this,"displayed");}}
     @Override protected void onPause(){if(puzzleView!=null)puzzleView.suspend();super.onPause();}
     @Override protected void onNewIntent(Intent i){super.onNewIntent(i);setIntent(i);refresh();}
+    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==PuzzleView.CAMERA_REQUEST&&result==RESULT_OK){refresh();if(!isFinishing()&&puzzleView!=null)puzzleView.cameraResult(data);}}
     @Override protected void onDestroy(){unregisterReceiver(updates);super.onDestroy();}
     @Override public void onBackPressed(){Toast.makeText(this,R.string.alarm_hint,Toast.LENGTH_SHORT).show();}
     void updateWaiting(){if(waitingLabel!=null){int waiting=AlarmQueue.read(this).size()-1;waitingLabel.setText(getString(R.string.routines_waiting,Math.max(0,waiting)));waitingLabel.setVisibility(waiting>0?View.VISIBLE:View.GONE);}}

@@ -8,6 +8,7 @@ import java.util.*;
 
 /** One renderer shared by alarm, protected actions and the silent preview. */
 final class PuzzleView extends LinearLayout {
+    static final int CAMERA_REQUEST=72;
     interface Solved { void accept(String answer); }
     final Puzzle puzzle; final Solved solved; final Handler handler=new Handler(Looper.getMainLooper());
     final ArrayList<Integer> entered=new ArrayList<>();
@@ -21,6 +22,18 @@ final class PuzzleView extends LinearLayout {
     TextView button(String value,Runnable action){return Ui.button(getContext(),value,Ui.CARD,Ui.TEXT,action);}
     void render(){
         removeAllViews();cells.clear();
+        if(puzzle.type==Puzzle.CAMERA){
+            label(ObjectRecognition.Cutlery.values()[puzzle.data[0]].prompt());Ui.space(this,12);
+            feedback=Ui.text(getContext(),"Fotografa la posata richiesta per risolvere la sfida.",14,Ui.MUTED);addView(feedback);Ui.space(this,12);
+            addView(button("Apri fotocamera",()->{
+                if(!complete)((android.app.Activity)getContext()).startActivityForResult(new Intent(getContext(),ObjectTestActivity.class).putExtra("puzzle",puzzle.encode()),CAMERA_REQUEST);
+            }));Ui.space(this,12);
+            addView(button("Alternativa · Matematica difficile",()->{
+                if(complete)return;removeAllViews();
+                addView(Ui.text(getContext(),"Risolvi questa operazione se non puoi usare la fotocamera.",14,Ui.MUTED));Ui.space(this,12);
+                PuzzleView fallback=new PuzzleView(getContext(),puzzle.cameraFallback(),this::submit);fallback.onWrong=()->onWrong.run();addView(fallback);
+            }));return;
+        }
         if(puzzle.type==Puzzle.MATH){label(puzzle.question());Ui.space(this,12);input=label(s(R.string.answer));}
         else label(s(puzzle.type==Puzzle.ODD?R.string.odd_hint:puzzle.type==Puzzle.ORDER?(puzzle.level==0?R.string.order_numbers:R.string.order_faces):R.string.watch));
         Ui.space(this,12);feedback=Ui.text(getContext(),s(R.string.solve_hint),13,Ui.MUTED);feedback.setGravity(Gravity.CENTER);addView(feedback);Ui.space(this,12);
@@ -121,6 +134,7 @@ final class PuzzleView extends LinearLayout {
         first.animate().translationX(offset).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator()).withEndAction(()->{settling=false;renderOrder();}).start();
     }
     void submit(String value){if(complete||settling||dragFrom>=0)return;if(puzzle.accepts(value)){complete=true;handler.removeCallbacksAndMessages(null);feedback.setText(s(R.string.correct));feedback.setTextColor(Ui.LIME);solved.accept(value);}else wrong();}
+    void cameraResult(Intent result){if(result!=null&&puzzle.cameraResult(result.getStringExtra("puzzle"),result.getStringExtra("answer")))submit(result.getStringExtra("answer"));}
     void wrong(){
         onWrong.run();
         feedback.setText(s(R.string.wrong));feedback.setTextColor(Ui.RED);android.graphics.drawable.GradientDrawable border=Ui.shape(Ui.BG,Ui.dp(getContext(),18));border.setStroke(Ui.dp(getContext(),2),Ui.RED);setBackground(border);

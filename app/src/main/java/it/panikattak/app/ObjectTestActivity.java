@@ -2,6 +2,7 @@ package it.panikattak.app;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -14,6 +15,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.TextureView;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -24,7 +26,7 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Isolated experiment: camera photos never enter the alarm or puzzle state. */
+/** Shared camera for the isolated experiment and an explicitly supplied puzzle. */
 @SuppressWarnings("deprecation")
 public final class ObjectTestActivity extends Activity implements TextureView.SurfaceTextureListener {
     private static final int CAMERA_REQUEST=31;
@@ -35,6 +37,7 @@ public final class ObjectTestActivity extends Activity implements TextureView.Su
     private ImageView photo;
     private TextView status,result,shoot,light,targetPrompt;
     private ObjectRecognition.Cutlery target;
+    private Puzzle puzzle;
     private boolean challengePassed;
     private Camera camera;
     private ObjectDetector detector;
@@ -45,8 +48,15 @@ public final class ObjectTestActivity extends Activity implements TextureView.Su
     private Runnable previewTimeout,focusTimeout,captureTimeout;
 
     @Override public void onCreate(Bundle state){super.onCreate(state);
+        String encoded=getIntent().getStringExtra("puzzle");
+        if(encoded!=null){
+            try{puzzle=Puzzle.decode(encoded);if(puzzle.type!=Puzzle.CAMERA||puzzle.data.length!=5||puzzle.data[0]<0||puzzle.data[0]>=3)throw new IllegalArgumentException("Invalid camera puzzle");}
+            catch(RuntimeException error){finish();return;}
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON|WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+            if(android.os.Build.VERSION.SDK_INT>=27)setShowWhenLocked(true);
+        }
         if(state!=null)lightEnabled=state.getBoolean("lightEnabled",true);
-        target=ObjectRecognition.restoreTarget(state==null?null:state.getString("cutleryTarget"),random);
+        target=puzzle==null?ObjectRecognition.restoreTarget(state==null?null:state.getString("cutleryTarget"),random):ObjectRecognition.Cutlery.values()[puzzle.data[0]];
         LinearLayout page=Ui.shell(this,true);
         page.addView(Ui.button(this,"←  Indietro",Ui.CARD,Ui.TEXT,this::finish));Ui.space(page,20);
         page.addView(Ui.bold(this,"Trova la posata",25,Ui.TEXT));Ui.space(page,10);
@@ -66,9 +76,9 @@ public final class ObjectTestActivity extends Activity implements TextureView.Su
         Ui.space(page,12);shoot=Ui.button(this,"Avvio fotocamera…",Ui.LIME,Ui.INK,this::capture);shoot.setEnabled(false);page.addView(shoot);
         Ui.space(page,12);status=Ui.text(this,"Avvio dell’anteprima…",13,Ui.MUTED);page.addView(status);
         Ui.space(page,12);result=Ui.bold(this,"",16,Ui.TEXT);page.addView(result);
-        Ui.space(page,20);page.addView(Ui.text(this,"Prova sperimentale: il modello può sbagliare. Questa prova non modifica le sveglie. Le foto vengono analizzate sul telefono e non vengono salvate nello storico.",12,Ui.MUTED));
+        Ui.space(page,20);page.addView(Ui.text(this,puzzle==null?"Prova sperimentale: il modello può sbagliare. Questa prova non modifica le sveglie. Le foto vengono analizzate sul telefono e non vengono salvate nello storico.":"Il modello può sbagliare. Se non puoi usare la fotocamera, torna alla sfida e scegli Matematica difficile. Le foto vengono analizzate sul telefono e non vengono salvate nello storico.",12,Ui.MUTED));
     }
-    @Override protected void onSaveInstanceState(Bundle state){state.putBoolean("lightEnabled",lightEnabled);state.putString("cutleryTarget",target.name());super.onSaveInstanceState(state);}
+    @Override protected void onSaveInstanceState(Bundle state){state.putBoolean("lightEnabled",lightEnabled);if(target!=null)state.putString("cutleryTarget",target.name());super.onSaveInstanceState(state);}
     @Override protected void onResume(){super.onResume();resumed=true;startCamera();}
     @Override protected void onPause(){resumed=false;releaseCamera();if(!analyzing)busy=false;super.onPause();}
     @Override protected void onDestroy(){main.removeCallbacksAndMessages(null);worker.execute(()->{if(detector!=null)detector.close();});worker.shutdown();super.onDestroy();}
@@ -84,7 +94,7 @@ public final class ObjectTestActivity extends Activity implements TextureView.Su
     }
 
     private void startCamera(){
-        if(!resumed||busy||camera!=null||!preview.isAvailable()||photo.getVisibility()==View.VISIBLE)return;
+        if(preview==null||!resumed||busy||camera!=null||!preview.isAvailable()||photo.getVisibility()==View.VISIBLE)return;
         if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED){
             shoot.setText("Consenti fotocamera");shoot.setEnabled(true);
             if(!permissionPending){permissionPending=true;requestPermissions(new String[]{Manifest.permission.CAMERA},CAMERA_REQUEST);}return;
@@ -183,7 +193,7 @@ public final class ObjectTestActivity extends Activity implements TextureView.Su
     private void capture(){
         if(busy)return;
         if(photo.getVisibility()==View.VISIBLE){
-            if(challengePassed){target=ObjectRecognition.nextTarget(random,target);targetPrompt.setText(target.prompt());}
+            if(challengePassed&&puzzle==null){target=ObjectRecognition.nextTarget(random,target);targetPrompt.setText(target.prompt());}
             challengePassed=false;
             photo.setImageDrawable(null);photo.setVisibility(View.GONE);result.setText("");startCamera();return;
         }
@@ -239,11 +249,18 @@ public final class ObjectTestActivity extends Activity implements TextureView.Su
             runOnUiThread(()->{
                 if(isDestroyed()||isFinishing()){if(photograph!=null)photograph.recycle();return;}
                 analyzing=false;busy=false;
-                challengePassed=evaluation.passed;
+                recognitionFinished(evaluation);
+                if(isFinishing()){if(photograph!=null)photograph.recycle();return;}
                 if(photograph!=null){photo.setImageBitmap(photograph);photo.setVisibility(View.VISIBLE);}
                 result.setText(evaluation.message);status.setText(photograph!=null?"Foto analizzata sul dispositivo.":"Impossibile leggere la foto.");
                 shoot.setText(photograph!=null?(challengePassed?"Prossima posata":"Riprova la foto"):"Riprova fotocamera");shoot.setEnabled(true);
             });
         });
+    }
+    private void recognitionFinished(ObjectRecognition.Result evaluation){
+        challengePassed=evaluation.passed;
+        if(challengePassed&&puzzle!=null){
+            setResult(RESULT_OK,new Intent().putExtra("puzzle",puzzle.encode()).putExtra("answer",puzzle.solution()));finish();
+        }
     }
 }

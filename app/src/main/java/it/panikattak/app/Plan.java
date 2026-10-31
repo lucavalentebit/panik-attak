@@ -16,7 +16,7 @@ public final class Plan {
     public int offset(int phase){int n=0;for(int i=0;i<phase;i++)n+=durations[i];return n;}
     public int fixedOffset(int phase){return Math.floorMod(fixedMinutes[phase]-(hour*60+minute),1440);}
     public boolean valid(){
-        if(hour<0||hour>23||minute<0||minute>59||days<1||days>127||puzzleType<0||puzzleType>4||fixed[3])return false;
+        if(hour<0||hour>23||minute<0||minute>59||days<1||days>127||puzzleType<0||puzzleType>5||fixed[3])return false;
         for(int i=0;i<4;i++)if(durations[i]<1||durations[i]>120||intervals[i]<1||intervals[i]>30||
             (fixed[i]&&(fixedMinutes[i]<0||fixedMinutes[i]>=1440||fixedOffset(i)<offset(i)||fixedOffset(i)>=offset(i)+durations[i])))return false;
         return true;

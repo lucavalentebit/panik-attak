@@ -39,6 +39,7 @@ public class ChallengeActivity extends Activity {
         else {Toast.makeText(this,R.string.stale_alarm,Toast.LENGTH_LONG).show();finish();}
     }
     void key(String key){puzzleView.answer=answer;puzzleView.key(key);answer=puzzleView.answer;}
+    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==PuzzleView.CAMERA_REQUEST&&result==RESULT_OK&&puzzleView!=null)puzzleView.cameraResult(data);}
     @Override protected void onSaveInstanceState(Bundle out){if(challenge!=null)out.putString("puzzle",challenge.encode());super.onSaveInstanceState(out);}
     @Override protected void onPause(){if(puzzleView!=null)puzzleView.suspend();super.onPause();}
     @Override protected void onResume(){super.onResume();if(puzzleView!=null)puzzleView.resume();}
