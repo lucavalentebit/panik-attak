@@ -25,7 +25,8 @@ public final class UpgradeTest {
         for(ZoneId z:new ZoneId[]{zone,ZoneId.of("America/New_York"),ZoneId.of("Asia/Tokyo")})for(LocalDate d:new LocalDate[]{date,LocalDate.of(2026,10,25),LocalDate.of(2026,3,29)}){
             var e=p.events(d,z).get(0);check(Instant.ofEpochMilli(e.at).atZone(z).toLocalTime().equals(LocalTime.of(7,45)),"timezone and DST restore");
         }
-        for(int type=0;type<5;type++)for(int level=0;level<3;level++){
+        p=new Plan();p.puzzleType=Puzzle.CAMERA;check(p.valid(),"camera routine can be saved");p.puzzleType=6;check(!p.valid(),"unknown puzzle rejected");
+        for(int type=0;type<=Puzzle.CAMERA;type++)for(int level=0;level<3;level++){
             String previous="";
             for(int n=0;n<300;n++){
                 Puzzle puzzle=Puzzle.create(type,level,previous);check(!puzzle.encode().equals(previous),"no consecutive repeat");previous=puzzle.encode();
@@ -34,6 +35,15 @@ public final class UpgradeTest {
                 if(type==Puzzle.COLORS||type==Puzzle.TILES){check(puzzle.data.length==4+level,"memory difficulty length");for(int v:puzzle.data)check(v>=0&&v<(type==Puzzle.COLORS?6:9),"memory positions valid");}
                 if(type==Puzzle.ORDER)check(!Puzzle.sorted(puzzle.data),"order starts unsolved");
                 if(type==Puzzle.MATH&&level==2)check(puzzle.data.length==3,"two-step difficult math");
+                if(type==Puzzle.CAMERA){
+                    check(puzzle.data[0]>=0&&puzzle.data[0]<3,"supported cutlery target");
+                    Puzzle restored=Puzzle.decode(puzzle.encode());check(restored.data[0]==puzzle.data[0],"camera target survives restore");
+                    check(puzzle.cameraResult(restored.encode(),restored.solution()),"matching photo result accepted");
+                    check(!puzzle.cameraResult(Puzzle.create(type,level,puzzle.encode()).encode(),puzzle.solution()),"stale photo result rejected");
+                    check(!puzzle.cameraResult(puzzle.encode(),"wrong")&&!puzzle.cameraResult(null,null),"invalid photo result rejected");
+                    Puzzle fallback=puzzle.cameraFallback();check(fallback.level==2&&fallback.data.length==3,"camera fallback always difficult");
+                    check(puzzle.accepts(fallback.solution())&&!puzzle.accepts(Integer.toString(Integer.parseInt(fallback.solution())+1)),"fallback validated by original puzzle");
+                }
             }
         }
         for(int n=0;n<10;n++){check(Puzzle.level(false,n)==0,"escalation opt-in");check(Puzzle.level(true,n)==(n<2?0:n<4?1:2),"escalation thresholds");}
