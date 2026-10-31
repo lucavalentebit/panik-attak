@@ -1,0 +1,27 @@
+name: Publish Panik Attak Alpha 6.1
+
+on:
+  push:
+    tags:
+      - v3.0-alpha.6.1
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify APK checksum
+        run: sha256sum -c Panik-Attak.apk.sha256
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          Panik-Attak.apk Panik-Attak.apk.sha256
+          --repo "$GITHUB_REPOSITORY"
+          --verify-tag --prerelease
+          --title "Panik Attak 3.0 Alpha 6.1"
+          --notes-file RELEASE-NOTES-alpha6.1.md

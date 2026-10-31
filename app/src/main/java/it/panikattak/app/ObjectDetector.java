@@ -8,7 +8,6 @@ import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
-import java.util.Locale;
 
 /** CPU-only COCO detector. Call from one background thread. */
 final class ObjectDetector implements AutoCloseable {
@@ -34,24 +33,7 @@ final class ObjectDetector implements AutoCloseable {
         java.util.Map<Integer,Object> outputs=new java.util.HashMap<>();
         outputs.put(0,boxes);outputs.put(1,classes);outputs.put(2,scores);outputs.put(3,count);
         interpreter.runForMultipleInputsOutputs(new Object[]{input},outputs);
-        float cutlery=0,cup=0,chair=0;
-        StringBuilder details=new StringBuilder();
-        for(int n=0;n<Math.min(maxDetections,(int)count[0]);n++){
-            int id=Math.round(classes[0][n]);float score=scores[0][n];
-            if(id>=47&&id<=49)cutlery=Math.max(cutlery,score);
-            if(id==46)cup=Math.max(cup,score);
-            if(id==61)chair=Math.max(chair,score);
-            if(score>=0.25f){
-                String name=id==46?"tazza":id==47?"forchetta":id==48?"coltello":id==49?"cucchiaio":id==61?"sedia":"altro (classe "+id+")";
-                if(details.length()>0)details.append(" · ");details.append(name).append(" ").append(Math.round(score*100)).append('%');
-            }
-        }
-        StringBuilder found=new StringBuilder();
-        if(cutlery>=0.5f)found.append("Posate ").append(Math.round(cutlery*100)).append("%  ");
-        if(cup>=0.5f)found.append("Tazza ").append(Math.round(cup*100)).append("%  ");
-        if(chair>=0.5f)found.append("Sedia ").append(Math.round(chair*100)).append("% (gambe non verificate)");
-        if(found.length()==0)found.append("Nessuno dei tre oggetti riconosciuto con sufficiente certezza.");
-        return found+"\n\nRilevazioni: "+(details.length()==0?"nessuna":details);
+        return ObjectRecognition.describe(classes[0],scores[0],(int)count[0]);
     }
     @Override public void close(){interpreter.close();}
 }

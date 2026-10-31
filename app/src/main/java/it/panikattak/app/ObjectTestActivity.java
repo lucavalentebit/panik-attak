@@ -5,105 +5,234 @@ import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.media.ExifInterface;
 import android.os.Bundle;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.TextureView;
 import android.view.View;
-import android.widget.ScrollView;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.io.ByteArrayInputStream;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /** Isolated experiment: camera photos never enter the alarm or puzzle state. */
 @SuppressWarnings("deprecation")
-public final class ObjectTestActivity extends Activity implements SurfaceHolder.Callback {
-    private static final int CAMERA_REQUEST = 31;
-    private SurfaceView preview;
-    private ImageView photo;
-    private TextView status, result, shoot;
-    private Camera camera;
-    private boolean surfaceReady, busy;
+public final class ObjectTestActivity extends Activity implements TextureView.SurfaceTextureListener {
+    private static final int CAMERA_REQUEST=31;
+    private final Handler main=new Handler(Looper.getMainLooper());
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
+    private TextureView preview;
+    private ImageView photo;
+    private TextView status,result,shoot,light;
+    private Camera camera;
     private ObjectDetector detector;
+    private boolean resumed,busy,analyzing,previewReady,permissionPending,lightEnabled=true;
+    private boolean flashAvailable;
+    private String lightMode;
+    private int previewWidth,previewHeight,previewRotation,captureId;
+    private Runnable previewTimeout,focusTimeout,captureTimeout;
 
     @Override public void onCreate(Bundle state){super.onCreate(state);
-        getWindow().setStatusBarColor(Ui.BG);getWindow().setNavigationBarColor(Ui.BG);
-        ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(Ui.BG);
-        LinearLayout page=Ui.column(this);page.setPadding(Ui.dp(this,22),Ui.dp(this,24),Ui.dp(this,22),Ui.dp(this,30));
-        scroll.addView(page);setContentView(scroll);
-        TextView back=Ui.button(this,"←  Indietro",Ui.CARD,Ui.TEXT,this::finish);page.addView(back);Ui.space(page,20);
+        if(state!=null)lightEnabled=state.getBoolean("lightEnabled",true);
+        LinearLayout page=Ui.shell(this,true);
+        page.addView(Ui.button(this,"←  Indietro",Ui.CARD,Ui.TEXT,this::finish));Ui.space(page,20);
         page.addView(Ui.bold(this,"Riconosci un oggetto",25,Ui.TEXT));Ui.space(page,10);
-        page.addView(Ui.text(this,"Inquadra posate, una tazza o una sedia. Scatta una foto e guarda cosa riconosce il modello sul telefono.",14,Ui.MUTED));Ui.space(page,18);
-        preview=new SurfaceView(this);preview.getHolder().addCallback(this);
-        preview.setBackgroundColor(Color.BLACK);
-        page.addView(preview,new LinearLayout.LayoutParams(-1,Ui.dp(this,260)));
-        photo=new ImageView(this);photo.setAdjustViewBounds(true);photo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);photo.setVisibility(View.GONE);
-        page.addView(photo,new LinearLayout.LayoutParams(-1,Ui.dp(this,260)));
-        Ui.space(page,12);shoot=Ui.button(this,"Scatta la foto",Ui.LIME,Ui.INK,this::capture);page.addView(shoot);
-        Ui.space(page,12);status=Ui.text(this,"",13,Ui.MUTED);page.addView(status);
+        page.addView(Ui.text(this,"Inquadra una forchetta, un cucchiaio, un coltello, una tazza o una sedia. Tieni l’oggetto intero nell’anteprima e avvicinati senza tagliarlo.",14,Ui.MUTED));Ui.space(page,18);
+        FrameLayout frame=new FrameLayout(this);frame.setBackgroundColor(Ui.CARD);
+        page.addView(frame,new LinearLayout.LayoutParams(-1,Ui.dp(this,260)));
+        // A TextureView participates in normal view composition. An opaque background
+        // on the old SurfaceView could cover the camera surface with a black rectangle.
+        preview=new TextureView(this);preview.setContentDescription("Anteprima della fotocamera");
+        preview.setSurfaceTextureListener(this);frame.addView(preview,new FrameLayout.LayoutParams(-1,-1));
+        photo=new ImageView(this);photo.setScaleType(ImageView.ScaleType.FIT_CENTER);photo.setBackgroundColor(Ui.CARD);
+        photo.setContentDescription("Foto scattata");photo.setVisibility(View.GONE);
+        frame.addView(photo,new FrameLayout.LayoutParams(-1,-1));
+        Ui.space(page,12);light=Ui.button(this,"Preparazione della luce…",Ui.CARD,Ui.TEXT,this::toggleLight);light.setEnabled(false);page.addView(light);
+        Ui.space(page,12);shoot=Ui.button(this,"Avvio fotocamera…",Ui.LIME,Ui.INK,this::capture);shoot.setEnabled(false);page.addView(shoot);
+        Ui.space(page,12);status=Ui.text(this,"Avvio dell’anteprima…",13,Ui.MUTED);page.addView(status);
         Ui.space(page,12);result=Ui.bold(this,"",16,Ui.TEXT);page.addView(result);
-        Ui.space(page,20);page.addView(Ui.text(this,"Prova sperimentale: il modello può sbagliare. Per una sedia riconosce la categoria, ma non verifica il numero delle gambe. Le foto non vengono inviate online né conservate nello storico.",12,Ui.MUTED));
+        Ui.space(page,20);page.addView(Ui.text(this,"Prova sperimentale: il modello può sbagliare. Le cialde di caffè non sono ancora supportate. Per le sedie non verifica il numero delle gambe. Le foto vengono analizzate sul telefono e non vengono salvate nello storico.",12,Ui.MUTED));
     }
-    @Override protected void onResume(){super.onResume();startCamera();}
-    @Override protected void onPause(){releaseCamera();super.onPause();}
-    @Override protected void onDestroy(){worker.execute(()->{if(detector!=null)detector.close();});worker.shutdown();super.onDestroy();}
-    @Override public void surfaceCreated(SurfaceHolder holder){surfaceReady=true;startCamera();}
-    @Override public void surfaceChanged(SurfaceHolder holder,int format,int width,int height){}
-    @Override public void surfaceDestroyed(SurfaceHolder holder){surfaceReady=false;releaseCamera();}
+    @Override protected void onSaveInstanceState(Bundle state){state.putBoolean("lightEnabled",lightEnabled);super.onSaveInstanceState(state);}
+    @Override protected void onResume(){super.onResume();resumed=true;startCamera();}
+    @Override protected void onPause(){resumed=false;releaseCamera();if(!analyzing)busy=false;super.onPause();}
+    @Override protected void onDestroy(){main.removeCallbacksAndMessages(null);worker.execute(()->{if(detector!=null)detector.close();});worker.shutdown();super.onDestroy();}
+    @Override public void onSurfaceTextureAvailable(SurfaceTexture texture,int width,int height){startCamera();}
+    @Override public void onSurfaceTextureSizeChanged(SurfaceTexture texture,int width,int height){fitPreview();}
+    @Override public boolean onSurfaceTextureDestroyed(SurfaceTexture texture){releaseCamera();if(!analyzing)busy=false;return true;}
+    @Override public void onSurfaceTextureUpdated(SurfaceTexture texture){
+        if(camera!=null&&resumed&&!busy&&!previewReady){
+            if(previewTimeout!=null)main.removeCallbacks(previewTimeout);
+            previewReady=true;shoot.setText("Scatta la foto");shoot.setEnabled(true);
+            status.setText("Fotocamera pronta. Inquadra l’oggetto intero.");updateLight();
+        }
+    }
+
     private void startCamera(){
-        if(!surfaceReady||camera!=null||preview==null)return;
-        if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.CAMERA},CAMERA_REQUEST);return;}
+        if(!resumed||busy||camera!=null||!preview.isAvailable()||photo.getVisibility()==View.VISIBLE)return;
+        if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED){
+            shoot.setText("Consenti fotocamera");shoot.setEnabled(true);
+            if(!permissionPending){permissionPending=true;requestPermissions(new String[]{Manifest.permission.CAMERA},CAMERA_REQUEST);}return;
+        }
+        shoot.setText("Avvio fotocamera…");shoot.setEnabled(false);status.setText("Avvio dell’anteprima…");
         try{
-            camera=Camera.open();Camera.Parameters parameters=camera.getParameters();
-            parameters.setFocusMode(parameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)?Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE:parameters.getFocusMode());
-            camera.setParameters(parameters);
-            Camera.CameraInfo info=new Camera.CameraInfo();Camera.getCameraInfo(0,info);
+            int cameraId=0;Camera.CameraInfo info=new Camera.CameraInfo();
+            for(int id=0;id<Camera.getNumberOfCameras();id++){Camera.getCameraInfo(id,info);if(info.facing==Camera.CameraInfo.CAMERA_FACING_BACK){cameraId=id;break;}}
+            Camera.getCameraInfo(cameraId,info);camera=Camera.open(cameraId);
+            Camera.Parameters parameters=camera.getParameters();
+            List<String> modes=parameters.getSupportedFocusModes();
+            if(modes!=null&&modes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE))parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            else if(modes!=null&&modes.contains(Camera.Parameters.FOCUS_MODE_AUTO))parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+            Camera.Size picture=chooseSize(parameters.getSupportedPictureSizes(),4d/3,1600*1200);
+            if(picture!=null)parameters.setPictureSize(picture.width,picture.height);
+            else picture=parameters.getPictureSize();
+            Camera.Size size=chooseSize(parameters.getSupportedPreviewSizes(),(double)picture.width/picture.height,1280*960);
+            if(size!=null)parameters.setPreviewSize(size.width,size.height);
+            else size=parameters.getPreviewSize();
             int display=getWindowManager().getDefaultDisplay().getRotation()*90;
-            camera.setDisplayOrientation((info.orientation-display+360)%360);
-            Camera.Parameters jpeg=camera.getParameters();jpeg.setRotation((info.orientation+display)%360);camera.setParameters(jpeg);
-            camera.setPreviewDisplay(preview.getHolder());camera.startPreview();status.setText("Fotocamera pronta.");
-        }catch(Exception error){releaseCamera();status.setText("Fotocamera non disponibile su questo dispositivo.");shoot.setEnabled(false);}
+            boolean front=info.facing==Camera.CameraInfo.CAMERA_FACING_FRONT;
+            previewRotation=front?(360-(info.orientation+display)%360)%360:(info.orientation-display+360)%360;
+            parameters.setRotation(front?(info.orientation+display)%360:(info.orientation-display+360)%360);
+            parameters.setJpegQuality(95);camera.setParameters(parameters);
+            previewWidth=size.width;previewHeight=size.height;fitPreview();
+            camera.setDisplayOrientation(previewRotation);configureLight();
+            camera.setErrorCallback((error,source)->{if(source==camera)cameraFailure("Fotocamera interrotta. Tocca Riprova fotocamera.");});
+            camera.setPreviewTexture(preview.getSurfaceTexture());camera.startPreview();
+            Camera opened=camera;previewTimeout=()->{if(camera==opened&&!previewReady)cameraFailure("L’anteprima non risponde. Tocca Riprova fotocamera.");};
+            main.postDelayed(previewTimeout,10000);
+        }catch(Exception error){cameraFailure("Fotocamera non disponibile. Controlla i permessi e riprova.");}
+    }
+    private static Camera.Size chooseSize(List<Camera.Size> sizes,double aspect,int targetArea){
+        if(sizes==null)return null;
+        Camera.Size best=null;double bestCost=Double.MAX_VALUE;
+        for(Camera.Size size:sizes){
+            double cost=20*Math.abs((double)size.width/size.height-aspect)+Math.abs(Math.log((double)size.width*size.height/targetArea));
+            if(cost<bestCost){best=size;bestCost=cost;}
+        }return best;
+    }
+    private void fitPreview(){
+        if(previewWidth==0||preview.getWidth()==0||preview.getHeight()==0)return;
+        boolean swap=previewRotation%180!=0;
+        float width=swap?previewHeight:previewWidth,height=swap?previewWidth:previewHeight;
+        float scale=Math.min(preview.getWidth()/width,preview.getHeight()/height);
+        Matrix matrix=new Matrix();matrix.setScale(width*scale/preview.getWidth(),height*scale/preview.getHeight(),preview.getWidth()/2f,preview.getHeight()/2f);
+        preview.setTransform(matrix);
+    }
+    private void configureLight(){
+        Camera.Parameters parameters=camera.getParameters();List<String> modes=parameters.getSupportedFlashModes();
+        flashAvailable=modes!=null&&(modes.contains(Camera.Parameters.FLASH_MODE_TORCH)||modes.contains(Camera.Parameters.FLASH_MODE_ON));
+        lightMode=null;
+        // Prefer continuous light so the user and autofocus see the illuminated object.
+        String[] candidates=lightEnabled?new String[]{Camera.Parameters.FLASH_MODE_TORCH,Camera.Parameters.FLASH_MODE_ON,Camera.Parameters.FLASH_MODE_OFF}:new String[]{Camera.Parameters.FLASH_MODE_OFF};
+        if(modes!=null)for(String mode:candidates){
+            if(!modes.contains(mode))continue;
+            try{parameters=camera.getParameters();parameters.setFlashMode(mode);camera.setParameters(parameters);lightMode=mode;break;}
+            catch(RuntimeException ignored){/* Some devices advertise modes they reject. */}
+        }
+        if(lightEnabled&&(lightMode==null||Camera.Parameters.FLASH_MODE_OFF.equals(lightMode)))flashAvailable=false;
+        if(!lightEnabled&&flashAvailable&&!Camera.Parameters.FLASH_MODE_OFF.equals(lightMode))throw new IllegalStateException("Cannot switch light off");
+        updateLight();
+    }
+    private void updateLight(){
+        light.setEnabled(camera!=null&&previewReady&&flashAvailable&&!busy);
+        if(camera==null){light.setText("Luce: spenta");return;}
+        light.setText(!flashAvailable?"Flash non disponibile":Camera.Parameters.FLASH_MODE_TORCH.equals(lightMode)?"Luce continua: accesa":Camera.Parameters.FLASH_MODE_ON.equals(lightMode)?"Flash allo scatto: attivo":"Luce: spenta");
+    }
+    private void toggleLight(){
+        if(camera==null||busy)return;lightEnabled=!lightEnabled;
+        try{configureLight();}catch(RuntimeException error){cameraFailure("Impossibile regolare la luce. Riprova.");}
     }
     @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);
-        if(request!=CAMERA_REQUEST)return;
+        if(request!=CAMERA_REQUEST)return;permissionPending=false;
         if(results.length>0&&results[0]==PackageManager.PERMISSION_GRANTED)startCamera();
-        else status.setText("Consenti l’accesso alla fotocamera per fare la prova.");
+        else{status.setText("Consenti l’accesso alla fotocamera per fare la prova.");shoot.setText("Consenti fotocamera");shoot.setEnabled(true);}
     }
-    private void releaseCamera(){if(camera!=null){camera.setPreviewCallback(null);camera.release();camera=null;}}
+    private void releaseCamera(){
+        previewReady=false;
+        if(previewTimeout!=null)main.removeCallbacks(previewTimeout);
+        if(focusTimeout!=null)main.removeCallbacks(focusTimeout);
+        if(captureTimeout!=null)main.removeCallbacks(captureTimeout);
+        Camera previous=camera;camera=null;
+        if(previous!=null){
+            try{Camera.Parameters parameters=previous.getParameters();List<String> modes=parameters.getSupportedFlashModes();
+                if(modes!=null&&modes.contains(Camera.Parameters.FLASH_MODE_OFF)){parameters.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);previous.setParameters(parameters);}
+            }catch(RuntimeException ignored){}
+            previous.setErrorCallback(null);previous.release();
+        }
+        if(light!=null)updateLight();
+        if(shoot!=null&&photo.getVisibility()!=View.VISIBLE&&!busy)shoot.setEnabled(false);
+    }
+    private void cameraFailure(String message){
+        busy=false;releaseCamera();status.setText(message);shoot.setText("Riprova fotocamera");shoot.setEnabled(true);
+    }
     private void capture(){
-        if(photo.getVisibility()==View.VISIBLE){photo.setImageDrawable(null);photo.setVisibility(View.GONE);preview.setVisibility(View.VISIBLE);shoot.setText("Scatta la foto");status.setText("Prepara il prossimo scatto.");startCamera();return;}
-        if(camera==null||busy){status.setText("Attendi che la fotocamera sia pronta.");return;}
-        busy=true;shoot.setEnabled(false);status.setText("Analisi della foto in corso…");result.setText("");
-        try{camera.takePicture(null,null,(bytes,c)->analyze(bytes));}
-        catch(RuntimeException error){busy=false;shoot.setEnabled(true);status.setText("Scatto non riuscito. Riprova.");}
+        if(busy)return;
+        if(photo.getVisibility()==View.VISIBLE){
+            photo.setImageDrawable(null);photo.setVisibility(View.GONE);result.setText("");startCamera();return;
+        }
+        if(camera==null){startCamera();return;}
+        if(!previewReady)return;
+        busy=true;shoot.setEnabled(false);updateLight();result.setText("");status.setText("Messa a fuoco…");
+        Camera source=camera;int request=++captureId;
+        focusTimeout=()->takePhoto(source,request);
+        main.postDelayed(focusTimeout,1500);
+        try{
+            String focus=source.getParameters().getFocusMode();
+            if(Camera.Parameters.FOCUS_MODE_AUTO.equals(focus)||Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE.equals(focus)||Camera.Parameters.FOCUS_MODE_MACRO.equals(focus))
+                source.autoFocus((success,focused)->{if(focusTimeout!=null)takePhoto(focused,request);});
+            else takePhoto(source,request);
+        }catch(RuntimeException error){takePhoto(source,request);}
+    }
+    private void takePhoto(Camera source,int request){
+        if(source!=camera||request!=captureId||!resumed||!busy||focusTimeout==null)return;
+        main.removeCallbacks(focusTimeout);focusTimeout=null;status.setText("Scatto della foto…");
+        captureTimeout=()->{if(source==camera&&busy)cameraFailure("Scatto non riuscito. Tocca Riprova fotocamera.");};
+        main.postDelayed(captureTimeout,10000);
+        try{source.takePicture(null,null,(bytes,c)->{
+            if(c!=camera||request!=captureId||!resumed)return;
+            analyzing=true;releaseCamera();status.setText("Analisi della foto in corso…");analyze(bytes);
+        });}catch(RuntimeException error){cameraFailure("Scatto non riuscito. Tocca Riprova fotocamera.");}
     }
     private void analyze(byte[] bytes){
-        BitmapFactory.Options options=new BitmapFactory.Options();options.inSampleSize=4;
-        Bitmap bitmap=BitmapFactory.decodeByteArray(bytes,0,bytes.length,options);
-        if(bitmap==null){finishAnalysis("Impossibile leggere la foto.");return;}
-        try{
-            int orientation=new ExifInterface(new ByteArrayInputStream(bytes)).getAttributeInt(ExifInterface.TAG_ORIENTATION,ExifInterface.ORIENTATION_NORMAL);
-            int degrees=orientation==ExifInterface.ORIENTATION_ROTATE_90?90:orientation==ExifInterface.ORIENTATION_ROTATE_180?180:orientation==ExifInterface.ORIENTATION_ROTATE_270?270:0;
-            if(degrees!=0){Matrix matrix=new Matrix();matrix.postRotate(degrees);Bitmap rotated=Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(),bitmap.getHeight(),matrix,true);bitmap.recycle();bitmap=rotated;}
-        }catch(Exception ignored){}
-        photo.setImageBitmap(bitmap);photo.setVisibility(View.VISIBLE);preview.setVisibility(View.GONE);
-        Bitmap photograph=bitmap;
+        // Decode, rotate and infer off the UI thread; retain enough detail for thin cutlery.
         worker.execute(()->{
-            String outcome;
-            try{if(detector==null)detector=new ObjectDetector(this);outcome=detector.detect(photograph);}
-            catch(Exception error){outcome="Riconoscimento non riuscito. Riprova.";}
-            String message=outcome;
-            runOnUiThread(()->{if(!isDestroyed())finishAnalysis(message);});
+            Bitmap bitmap=null;String outcome;
+            try{
+                BitmapFactory.Options options=new BitmapFactory.Options();options.inJustDecodeBounds=true;
+                BitmapFactory.decodeByteArray(bytes,0,bytes.length,options);options.inJustDecodeBounds=false;options.inSampleSize=1;
+                while(Math.max(options.outWidth,options.outHeight)/options.inSampleSize>1600)options.inSampleSize*=2;
+                bitmap=BitmapFactory.decodeByteArray(bytes,0,bytes.length,options);
+                if(bitmap==null)throw new IllegalArgumentException("Invalid JPEG");
+                int orientation=new ExifInterface(new ByteArrayInputStream(bytes)).getAttributeInt(ExifInterface.TAG_ORIENTATION,ExifInterface.ORIENTATION_NORMAL);
+                Matrix rotation=new Matrix();
+                switch(orientation){
+                    case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:rotation.setScale(-1,1);break;
+                    case ExifInterface.ORIENTATION_ROTATE_180:rotation.setRotate(180);break;
+                    case ExifInterface.ORIENTATION_FLIP_VERTICAL:rotation.setScale(1,-1);break;
+                    case ExifInterface.ORIENTATION_TRANSPOSE:rotation.setRotate(90);rotation.postScale(-1,1);break;
+                    case ExifInterface.ORIENTATION_ROTATE_90:rotation.setRotate(90);break;
+                    case ExifInterface.ORIENTATION_TRANSVERSE:rotation.setRotate(-90);rotation.postScale(-1,1);break;
+                    case ExifInterface.ORIENTATION_ROTATE_270:rotation.setRotate(-90);break;
+                }
+                if(!rotation.isIdentity()){Bitmap rotated=Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(),bitmap.getHeight(),rotation,true);if(rotated!=bitmap)bitmap.recycle();bitmap=rotated;}
+                if(detector==null)detector=new ObjectDetector(this);outcome=detector.detect(bitmap);
+            }catch(Exception error){outcome="Riconoscimento non riuscito. Scatta un’altra foto.";}
+            Bitmap photograph=bitmap;String message=outcome;
+            runOnUiThread(()->{
+                if(isDestroyed()||isFinishing()){if(photograph!=null)photograph.recycle();return;}
+                analyzing=false;busy=false;
+                if(photograph!=null){photo.setImageBitmap(photograph);photo.setVisibility(View.VISIBLE);}
+                result.setText(message);status.setText(photograph!=null?"Foto analizzata sul dispositivo.":"Impossibile leggere la foto.");
+                shoot.setText(photograph!=null?"Nuova foto":"Riprova fotocamera");shoot.setEnabled(true);
+            });
         });
-    }
-    private void finishAnalysis(String message){busy=false;shoot.setEnabled(true);status.setText("Foto analizzata sul dispositivo.");result.setText(message);releaseCamera();
-        if(photo.getVisibility()==View.VISIBLE)shoot.setText("Nuova foto");else startCamera();
     }
 }

@@ -6,7 +6,11 @@ Una sveglia Android che accompagna il risveglio con richiami progressivi e puzzl
 
 **Android 8+ · In italiano · Offline · Nessun account · Nessuna pubblicità**
 
-[Scarica Alpha 6](https://github.com/lucavalentebit/panik-attak/releases/tag/v3.0-alpha.6) · [APK nella repository](Panik-Attak.apk) · [Dettagli tecnici](docs/TECHNICAL.md) · [Piano V3](docs/V3-PLAN.md)
+[Scarica Alpha 6.1](https://github.com/lucavalentebit/panik-attak/releases/tag/v3.0-alpha.6.1) · [APK nella repository](Panik-Attak.apk) · [Dettagli tecnici](docs/TECHNICAL.md) · [Piano V3](docs/V3-PLAN.md)
+
+## Correzioni fotocamera — Alpha 6.1
+
+Anteprima visibile prima dello scatto, luce continua accesa dove disponibile (altrimenti flash allo scatto), pulsante per spegnerla e risultati distinti per forchetta, cucchiaio e coltello. Il modello attuale non riconosce le cialde di caffè: il [piano per le quattro categorie](docs/OBJECT-IMPROVEMENTS.md) descrive dati, addestramento e verifiche necessari. [Note dell’aggiornamento](RELEASE-NOTES-alpha6.1.md).
 
 ## Novità di Alpha 6 — prova riconoscimento oggetti
 
