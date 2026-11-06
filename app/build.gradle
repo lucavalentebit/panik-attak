@@ -1,9 +1,16 @@
 plugins { id 'com.android.application' }
+def tabletApk = project.findProperty('tabletApk') == 'true'
 android {
     namespace 'it.panikattak.app'
     compileSdk 35
     androidResources { noCompress 'tflite' }
-    defaultConfig { applicationId 'it.panikattak.app'; minSdk 26; targetSdk 35; versionCode 15; versionName '3.0-alpha.7'; testInstrumentationRunner project.findProperty('testRunner') ?: 'it.panikattak.app.AlarmSmoke' }
+    defaultConfig { applicationId 'it.panikattak.app'; minSdk 26; targetSdk 35; versionCode 16; versionName (tabletApk ? '3.0-alpha.8-tablet' : '3.0-alpha.8'); testInstrumentationRunner project.findProperty('testRunner') ?: 'it.panikattak.app.AlarmSmoke' }
+    defaultConfig {
+        manifestPlaceholders = [appLabel: tabletApk ? 'Panik Attak Tablet' : 'Panik Attak']
+        if (tabletApk) applicationIdSuffix '.tablet'
+    }
+    // Same signing identity as the distributed APK; no private key is stored in Git.
+    buildTypes { release { signingConfig signingConfigs.debug } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 

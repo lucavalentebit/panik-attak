@@ -21,7 +21,7 @@ final class RoutineUi {
             toggle.setOnClickListener(v->{toggle.setChecked(Store.enabled(a,routine.id));if(Store.enabled(a,routine.id))a.startActivity(ChallengeActivity.intent(a,ChallengeActivity.PAUSE,routine.id));else a.activate(routine.id);});row.addView(toggle);card.addView(row);Ui.space(card,8);
             LinearLayout bottom=Ui.row(a);Plan.Event next=Store.enabled(a,routine.id)?plan.next(System.currentTimeMillis(),Store.skipped(a,routine.id),java.time.ZoneId.systemDefault()):null;
             Ui.weighted(bottom,Ui.text(a,next==null?"In pausa":"Attiva · "+TodayPage.date(next.at)+" "+Store.time(next.at),12,next==null?Ui.MUTED:Ui.LIME));
-            TextView menu=Ui.button(a,"⋮",0x12FFFFFF,Ui.TEXT,()->{Store.select(a,routine.id);manage(a);});menu.setContentDescription("Gestisci "+routine.name);menu.setMinHeight(Ui.dp(a,48));menu.setTextSize(22);bottom.addView(menu,new LinearLayout.LayoutParams(Ui.dp(a,48),Ui.dp(a,48)));card.addView(bottom);page.addView(card);Ui.space(page,12);
+            TextView menu=Ui.button(a,"⋮",0x12FFFFFF,Ui.TEXT,()->{Store.select(a,routine.id);manage(a);});menu.setContentDescription("Gestisci "+routine.name);menu.setMinHeight(Ui.dp(a,48));menu.setPadding(0,0,0,0);Ui.textSize(menu,22);bottom.addView(menu,new LinearLayout.LayoutParams(Ui.dp(a,48),Ui.dp(a,48)));card.addView(bottom);page.addView(card);Ui.space(page,12);
         }
         Ui.space(page,8);page.addView(Ui.button(a,a.getString(R.string.new_routine),Ui.LIME,Ui.INK,()->nameDialog(a,0)));
     }

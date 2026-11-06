@@ -30,7 +30,7 @@ final class HabitChart extends View {
     }
     @Override protected void onMeasure(int widthSpec,int heightSpec){setMeasuredDimension(MeasureSpec.getSize(widthSpec),resolveSize(getSuggestedMinimumHeight(),heightSpec));}
     float dp(float value){return Ui.dp(getContext(),value);}
-    void text(Canvas c,String s,float x,float y,int color){paint.setColor(color);paint.setStyle(Paint.Style.FILL);paint.setTextSize(dp(10)*getResources().getConfiguration().fontScale);c.drawText(s,x,y,paint);}
+    void text(Canvas c,String s,float x,float y,int color){paint.setColor(color);paint.setStyle(Paint.Style.FILL);paint.setTextSize(Ui.sp(getContext(),10)*getResources().getDisplayMetrics().scaledDensity);c.drawText(s,x,y,paint);}
     @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);if(bins!=null){histogram(canvas);return;}
         float left=dp((clock?58:43)*Math.min(1.6f,getResources().getConfiguration().fontScale)),right=getWidth()-dp(12),top=dp(15),bottom=getHeight()-dp(30);double min=0,max=15;
         if(!points.isEmpty()){if(clock)min=Math.floor(points.stream().mapToDouble(p->p.y).min().orElse(0)/60)*60;max=Math.max(min+30,Math.ceil(points.stream().mapToDouble(p->p.y).max().orElse(15)/15)*15);}
@@ -38,7 +38,7 @@ final class HabitChart extends View {
         for(Point point:points){point.px=left+(right-left)*(float)(point.x/Math.max(1,days-1));point.py=bottom-(bottom-top)*(float)((point.y-min)/(max-min));paint.setColor(point.end?Ui.LIME:Ui.MUTED);paint.setStrokeWidth(dp(2));
             if(point.end){paint.setStyle(Paint.Style.FILL);Path diamond=new Path();diamond.moveTo(point.px,point.py-dp(6));diamond.lineTo(point.px+dp(6),point.py);diamond.lineTo(point.px,point.py+dp(6));diamond.lineTo(point.px-dp(6),point.py);diamond.close();canvas.drawPath(diamond,paint);}else{paint.setStyle(Paint.Style.STROKE);canvas.drawCircle(point.px,point.py,dp(4),paint);}paint.setStyle(Paint.Style.FILL);
         }
-        DateTimeFormatter date=DateTimeFormatter.ofPattern("dd/MM");text(canvas,today.minusDays(days-1).format(date),left,getHeight()-dp(7),Ui.MUTED);String end=today.format(date);paint.setTextSize(dp(10)*getResources().getConfiguration().fontScale);text(canvas,end,right-paint.measureText(end),getHeight()-dp(7),Ui.MUTED);
+        DateTimeFormatter date=DateTimeFormatter.ofPattern("dd/MM");text(canvas,today.minusDays(days-1).format(date),left,getHeight()-dp(7),Ui.MUTED);String end=today.format(date);paint.setTextSize(Ui.sp(getContext(),10)*getResources().getDisplayMetrics().scaledDensity);text(canvas,end,right-paint.measureText(end),getHeight()-dp(7),Ui.MUTED);
     }
     static String clockLabel(double value){int minutes=(int)Math.round(value);int day=Math.floorDiv(minutes,1440);int clock=Math.floorMod(minutes,1440);return String.format(Locale.ITALIAN,"%02d:%02d",clock/60,clock%60)+(day==0?"":(day>0?" +":" ")+day);}
     void histogram(Canvas canvas){
@@ -46,7 +46,7 @@ final class HabitChart extends View {
         paint.setColor(0x229FA695);canvas.drawRect(0,bottom,getWidth(),bottom+dp(1),paint);
         for(int n=0;n<48;n++)if(bins[n]>0){paint.setColor(Ui.LIME);float height=(bottom-top)*bins[n]/maximum;canvas.drawRoundRect(n*width+dp(1),bottom-height,(n+1)*width-dp(1),bottom,dp(2),dp(2),paint);}
         for(int hour:new int[]{0,6,12,18})text(canvas,String.format(Locale.ITALIAN,"%02d",hour),getWidth()*hour/24f,getHeight()-dp(6),Ui.MUTED);
-        paint.setTextSize(dp(10)*getResources().getConfiguration().fontScale);text(canvas,"24",getWidth()-paint.measureText("24"),getHeight()-dp(6),Ui.MUTED);text(canvas,"max "+maximum,0,dp(10),Ui.MUTED);
+        paint.setTextSize(Ui.sp(getContext(),10)*getResources().getDisplayMetrics().scaledDensity);text(canvas,"24",getWidth()-paint.measureText("24"),getHeight()-dp(6),Ui.MUTED);text(canvas,"max "+maximum,0,dp(10),Ui.MUTED);
     }
     @Override public boolean onTouchEvent(MotionEvent event){if(selection==null)return super.onTouchEvent(event);if(event.getAction()==MotionEvent.ACTION_UP){performClick();Point nearest=null;float best=dp(32);for(Point p:points){float distance=(float)Math.hypot(event.getX()-p.px,event.getY()-p.py);if(distance<best){best=distance;nearest=p;}}if(nearest!=null)selection.open(nearest.session);return true;}return true;}
     @Override public boolean performClick(){super.performClick();return true;}

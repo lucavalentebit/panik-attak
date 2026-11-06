@@ -21,16 +21,22 @@ final class AppShell {
     AppShell(MainActivity a,Bundle savedPositions){
         activity=a;positions=savedPositions==null?new Bundle():savedPositions;
         a.getWindow().setStatusBarColor(Ui.BG);a.getWindow().setNavigationBarColor(Ui.CARD);
-        LinearLayout outer=Ui.column(a);outer.setBackgroundColor(Ui.BG);
+        LinearLayout outer=Ui.column(a);outer.setBackgroundColor(Ui.BG);outer.setGravity(Gravity.CENTER_HORIZONTAL);
         outer.setOnApplyWindowInsetsListener((v,in)->{
             if(Build.VERSION.SDK_INT>=30){var bars=in.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());v.setPadding(bars.left,bars.top,bars.right,bars.bottom);return WindowInsets.CONSUMED;}
             v.setPadding(in.getSystemWindowInsetLeft(),in.getSystemWindowInsetTop(),in.getSystemWindowInsetRight(),in.getSystemWindowInsetBottom());return in.consumeSystemWindowInsets();
         });
-        header=Ui.row(a);header.setMinimumHeight(Ui.dp(a,64));header.setPadding(Ui.dp(a,12),Ui.dp(a,4),Ui.dp(a,12),Ui.dp(a,4));outer.addView(header,new LinearLayout.LayoutParams(-1,-2));
+        header=Ui.contentRow(a);header.setMinimumHeight(Ui.dp(a,64));header.setPadding(Ui.dp(a,12),Ui.dp(a,4),Ui.dp(a,12),Ui.dp(a,4));outer.addView(header,new LinearLayout.LayoutParams(-1,-2));
         scroll=new ScrollView(a);scroll.setFillViewport(true);scroll.setVerticalScrollBarEnabled(false);
-        body=Ui.column(a);body.setPadding(Ui.dp(a,24),Ui.dp(a,16),Ui.dp(a,24),Ui.dp(a,26));scroll.addView(body);outer.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        body=Ui.contentColumn(a);body.setPadding(Ui.dp(a,24),Ui.dp(a,16),Ui.dp(a,24),Ui.dp(a,26));scroll.addView(body,new FrameLayout.LayoutParams(-1,-2,Gravity.TOP|Gravity.CENTER_HORIZONTAL));outer.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         navigation=new BottomNavigationView(a);navigation.setElevation(0);navigation.setBackgroundColor(Ui.CARD);
         ColorStateList tint=new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{Ui.LIME,Ui.MUTED});
+        if(Ui.scale(a)>1){
+            navigation.setItemTextAppearanceActive(R.style.TabletNavigationText);
+            navigation.setItemTextAppearanceInactive(R.style.TabletNavigationText);
+            navigation.setItemIconSize(Ui.dp(a,24));
+            navigation.setMinimumHeight(Ui.dp(a,64));
+        }
         navigation.setItemIconTintList(tint);navigation.setItemTextColor(tint);navigation.setItemActiveIndicatorColor(ColorStateList.valueOf(0x24DCFA84));navigation.setLabelVisibilityMode(NavigationBarView.LABEL_VISIBILITY_LABELED);
         navigation.getMenu().add(0,MainActivity.TODAY,0,R.string.page_today).setIcon(R.drawable.ic_today);
         navigation.getMenu().add(0,MainActivity.ROUTINES,1,R.string.page_routines).setIcon(R.drawable.ic_routines);

@@ -6,7 +6,13 @@ Una sveglia Android che accompagna il risveglio con richiami progressivi e puzzl
 
 **Android 8+ · In italiano · Offline · Nessun account · Nessuna pubblicità**
 
-[Scarica Alpha 6.2](https://github.com/lucavalentebit/panik-attak/releases/tag/v3.0-alpha.6.2) · [APK nella repository](Panik-Attak.apk) · [Dettagli tecnici](docs/TECHNICAL.md) · [Piano V3](docs/V3-PLAN.md)
+[Scarica APK Galaxy Tab S11 Ultra](https://github.com/lucavalentebit/panik-attak/releases/tag/v3.0-alpha.8-tablet) · [Alpha 6.2 telefono](https://github.com/lucavalentebit/panik-attak/releases/tag/v3.0-alpha.6.2) · [Dettagli tecnici](docs/TECHNICAL.md) · [Piano V3](docs/V3-PLAN.md)
+
+## Alpha 8 Tablet — Galaxy Tab S11 Ultra
+
+Testi dei pulsanti da 18 a circa 20 sp sui tablet, spaziature e controlli proporzionati, contenuto centrato con larghezza massima in orizzontale. La dimensione segue la finestra Android, anche in multitasking; rispetta l’ingrandimento caratteri di sistema. Le funzionalità presenti nel codice Alpha 7 sono conservate.
+
+L’APK **Panik-Attak-Tab-S11-Ultra.apk** si installa come **Panik Attak Tablet** (`it.panikattak.app.tablet`), separatamente dall’app esistente, come richiesto. Non serve disinstallare: l’app precedente e i suoi dati restano intatti. La variante tablet parte con routine, storico e autorizzazioni propri. [Note e istruzioni](RELEASE-NOTES-alpha8-tablet.md).
 
 ## Alpha 7 — Trova la posata come sfida della sveglia
 
@@ -14,7 +20,7 @@ Nel dettaglio di una routine, **Puzzle della sequenza → Trova la posata** perm
 
 La richiesta resta la stessa quando riprovi o ruoti il telefono. Se non puoi usare la fotocamera, scegli **Alternativa · Matematica difficile**: occorre comunque risolvere una sfida. Il suono continua finché il richiamo non viene chiuso. Le foto vengono elaborate sul telefono e non vengono salvate. La prova indipendente nelle Impostazioni resta disponibile. [Note Alpha 7](RELEASE-NOTES-alpha7.md) e [guida delle posate](docs/OBJECT-TEST.md).
 
-La compilazione Alpha 7 è pronta; la pubblicazione dell’APK aggiornabile dalla Alpha 6.2 richiede il suo keystore originale. Finché la firma non viene recuperata, il download e l’APK nella radice restano Alpha 6.2.
+Le funzionalità Alpha 7 sono incluse nella release Alpha 8 Tablet. La firma disponibile è stata confrontata direttamente con l’APK Alpha 6.2 e coincide; la variante tablet usa comunque un package separato per scelta dell’utente. Il vecchio file `Panik-Attak.apk` nella radice rimane disponibile per riferimento.
 
 ## Novità di Alpha 6.2 — prova delle posate a caso
 

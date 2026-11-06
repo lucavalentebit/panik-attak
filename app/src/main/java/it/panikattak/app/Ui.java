@@ -11,20 +11,32 @@ import android.widget.*;
 final class Ui {
     static final int BG=Color.rgb(17,19,16),CARD=Color.rgb(29,32,26),TEXT=Color.rgb(246,247,239),MUTED=Color.rgb(159,166,149),LIME=Color.rgb(220,250,132),INK=Color.rgb(27,36,16),LILAC=Color.rgb(203,190,255),ORANGE=Color.rgb(255,185,119),RED=Color.rgb(255,130,116);
     static final int[] COLORS={LIME,LILAC,ORANGE,RED};
-    static int dp(Context c,float x){return (int)(x*c.getResources().getDisplayMetrics().density+0.5f);}
+    // Scale visual dimensions together, in Android logical units, never raw pixels.
+    // Configuration follows the current window, including split screen and rotation.
+    static float scale(Context c){int width=c.getResources().getConfiguration().smallestScreenWidthDp;return width>=840?1.35f:width>=600?1.2f:1f;}
+    static int dp(Context c,float x){return (int)(x*scale(c)*c.getResources().getDisplayMetrics().density+0.5f);}
+    static float sp(Context c,float x){return scale(c)>1?Math.max(16,x*scale(c)):x;}
+    static void textSize(TextView t,float size){t.setTextSize(sp(t.getContext(),size));}
+    static int contentWidth(Context c,int widthSpec){
+        if(scale(c)==1)return widthSpec;
+        int maximum=dp(c,760),mode=View.MeasureSpec.getMode(widthSpec),size=View.MeasureSpec.getSize(widthSpec);
+        return View.MeasureSpec.makeMeasureSpec(mode==View.MeasureSpec.UNSPECIFIED?maximum:Math.min(size,maximum),mode==View.MeasureSpec.EXACTLY?mode:View.MeasureSpec.AT_MOST);
+    }
+    static LinearLayout contentColumn(Context c){LinearLayout l=new LinearLayout(c){@Override protected void onMeasure(int w,int h){super.onMeasure(contentWidth(c,w),h);}};l.setOrientation(LinearLayout.VERTICAL);return l;}
+    static LinearLayout contentRow(Context c){LinearLayout l=new LinearLayout(c){@Override protected void onMeasure(int w,int h){super.onMeasure(contentWidth(c,w),h);}};l.setGravity(Gravity.CENTER_VERTICAL);return l;}
     static GradientDrawable shape(int color,int radius){GradientDrawable g=new GradientDrawable();g.setColor(color);g.setCornerRadius(radius);return g;}
     static LinearLayout column(Context c){LinearLayout l=new LinearLayout(c);l.setOrientation(LinearLayout.VERTICAL);return l;}
     static LinearLayout row(Context c){LinearLayout l=new LinearLayout(c);l.setGravity(Gravity.CENTER_VERTICAL);return l;}
-    static TextView text(Context c,String s,float size,int color){TextView t=new TextView(c);t.setText(s);t.setTextSize(size);t.setTextColor(color);t.setFontFeatureSettings("tnum");t.setIncludeFontPadding(false);return t;}
+    static TextView text(Context c,String s,float size,int color){TextView t=new TextView(c);t.setText(s);textSize(t,size);t.setTextColor(color);t.setFontFeatureSettings("tnum");t.setIncludeFontPadding(false);return t;}
     static TextView bold(Context c,String s,float size,int color){TextView t=text(c,s,size,color);t.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));return t;}
     static void space(LinearLayout l,int h){View v=new View(l.getContext());l.addView(v,new LinearLayout.LayoutParams(1,dp(l.getContext(),h)));}
     static LinearLayout card(Context c,int color){LinearLayout l=column(c);l.setPadding(dp(c,22),dp(c,22),dp(c,22),dp(c,22));l.setBackground(shape(color,dp(c,28)));return l;}
     static TextView button(Context c,String s,int color,int ink,Runnable action){TextView t=bold(c,s,15,ink);t.setGravity(Gravity.CENTER);t.setMinHeight(dp(c,56));t.setPadding(dp(c,16),dp(c,14),dp(c,16),dp(c,14));t.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x22FFFFFF),shape(color,dp(c,20)),null));t.setClickable(true);t.setFocusable(true);t.setOnClickListener(v->action.run());return t;}
     static LinearLayout shell(Activity a,boolean scroll){
         a.getWindow().setStatusBarColor(BG);a.getWindow().setNavigationBarColor(BG);
-        LinearLayout outer=column(a);outer.setBackgroundColor(BG);outer.setOnApplyWindowInsetsListener((v,in)->{if(Build.VERSION.SDK_INT>=30){android.graphics.Insets b=in.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());v.setPadding(b.left,b.top,b.right,b.bottom);}else v.setPadding(in.getSystemWindowInsetLeft(),in.getSystemWindowInsetTop(),in.getSystemWindowInsetRight(),in.getSystemWindowInsetBottom());return in;});
-        LinearLayout body=column(a);body.setPadding(dp(a,24),dp(a,22),dp(a,24),dp(a,26));
-        if(scroll){ScrollView sv=new ScrollView(a);sv.setFillViewport(true);sv.setClipToPadding(false);sv.setVerticalScrollBarEnabled(false);sv.addView(body);outer.addView(sv,new LinearLayout.LayoutParams(-1,-1));}else outer.addView(body,new LinearLayout.LayoutParams(-1,-1));a.setContentView(outer);outer.requestApplyInsets();return body;
+        LinearLayout outer=column(a);outer.setGravity(Gravity.CENTER_HORIZONTAL);outer.setBackgroundColor(BG);outer.setOnApplyWindowInsetsListener((v,in)->{if(Build.VERSION.SDK_INT>=30){android.graphics.Insets b=in.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());v.setPadding(b.left,b.top,b.right,b.bottom);}else v.setPadding(in.getSystemWindowInsetLeft(),in.getSystemWindowInsetTop(),in.getSystemWindowInsetRight(),in.getSystemWindowInsetBottom());return in;});
+        LinearLayout body=contentColumn(a);body.setPadding(dp(a,24),dp(a,22),dp(a,24),dp(a,26));
+        if(scroll){ScrollView sv=new ScrollView(a);sv.setFillViewport(true);sv.setClipToPadding(false);sv.setVerticalScrollBarEnabled(false);sv.addView(body,new android.widget.FrameLayout.LayoutParams(-1,-2,Gravity.TOP|Gravity.CENTER_HORIZONTAL));outer.addView(sv,new LinearLayout.LayoutParams(-1,-1));}else outer.addView(body,new LinearLayout.LayoutParams(-1,-1));a.setContentView(outer);outer.requestApplyInsets();return body;
     }
     static void weighted(LinearLayout row,View child){row.addView(child,new LinearLayout.LayoutParams(0,-2,1));}
     static AlertDialog.Builder dialog(Context c){return new AlertDialog.Builder(c){
@@ -32,7 +44,7 @@ final class Ui {
     };}
     static android.content.res.ColorStateList controlTint(){return new android.content.res.ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{android.R.attr.state_checked},new int[]{}},new int[]{0x669FA695,LIME,MUTED});}
     static void dialogButton(TextView button,boolean primary){
-        if(button==null)return;Context c=button.getContext();button.setTextColor(primary?INK:MUTED);
+        if(button==null)return;Context c=button.getContext();if(scale(c)>1)textSize(button,15);button.setTextColor(primary?INK:MUTED);
         button.setMinHeight(dp(c,48));button.setMinimumHeight(dp(c,48));button.setPadding(dp(c,16),dp(c,8),dp(c,16),dp(c,8));
         button.setElevation(0);button.setStateListAnimator(null);
         // Framework AlertDialog may inflate a MaterialButton with its background already
@@ -43,6 +55,8 @@ final class Ui {
         if(button.getLayoutParams() instanceof ViewGroup.MarginLayoutParams){var lp=(ViewGroup.MarginLayoutParams)button.getLayoutParams();lp.setMarginStart(dp(c,4));lp.setMarginEnd(dp(c,4));button.setLayoutParams(lp);}
     }
     static void styleDialog(AlertDialog d){
+        Context c=d.getContext();
+        if(scale(c)>1&&d.getWindow()!=null){int available=c.getResources().getDisplayMetrics().widthPixels-dp(c,32);d.getWindow().setLayout(Math.min(available,dp(c,560)),ViewGroup.LayoutParams.WRAP_CONTENT);}
         dialogButton(d.getButton(-1),true);dialogButton(d.getButton(-2),false);dialogButton(d.getButton(-3),false);
         ListView list=d.getListView();if(list==null)return;
         if(list.getChoiceMode()==ListView.CHOICE_MODE_NONE){list.setDivider(new android.graphics.drawable.ColorDrawable(0x229FA695));list.setDividerHeight(dp(list.getContext(),1));}
@@ -52,7 +66,7 @@ final class Ui {
     static void styleOption(View child){
         int height=dp(child.getContext(),52);child.setMinimumHeight(height);
         if(child.getLayoutParams()!=null&&child.getLayoutParams().height>0){var lp=child.getLayoutParams();lp.height=Math.max(lp.height,height);child.setLayoutParams(lp);}
-        if(child instanceof TextView)((TextView)child).setTextColor(TEXT);
+        if(child instanceof TextView){TextView t=(TextView)child;t.setTextColor(TEXT);if(scale(child.getContext())>1)textSize(t,15);}
         if(child instanceof CheckedTextView)((CheckedTextView)child).setCheckMarkTintList(controlTint());
     }
 }

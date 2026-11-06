@@ -39,7 +39,7 @@ final class PuzzleView extends LinearLayout {
         Ui.space(this,12);feedback=Ui.text(getContext(),s(R.string.solve_hint),13,Ui.MUTED);feedback.setGravity(Gravity.CENTER);addView(feedback);Ui.space(this,12);
         board=Ui.column(getContext());addView(board);
         if(puzzle.type==Puzzle.MATH){
-            for(String[] row:new String[][]{{"1","2","3"},{"4","5","6"},{"7","8","9"},{"⌫","0","→"}}){LinearLayout line=Ui.row(getContext());board.addView(line);for(String key:row){TextView b=button(key,()->key(key));b.setTextSize(24);if(key.equals("⌫"))b.setContentDescription(s(R.string.delete_digit));if(key.equals("→"))b.setContentDescription(s(R.string.confirm));addCell(line,b,56);}}
+            for(String[] row:new String[][]{{"1","2","3"},{"4","5","6"},{"7","8","9"},{"⌫","0","→"}}){LinearLayout line=Ui.row(getContext());board.addView(line);for(String key:row){TextView b=button(key,()->key(key));Ui.textSize(b,24);if(key.equals("⌫"))b.setContentDescription(s(R.string.delete_digit));if(key.equals("→"))b.setContentDescription(s(R.string.confirm));addCell(line,b,56);}}
         }else if(puzzle.type==Puzzle.ORDER){renderOrder();Ui.space(this,12);addView(Ui.text(getContext(),s(R.string.order_accessibility),12,Ui.MUTED));Ui.space(this,12);addView(button(s(R.string.confirm),()->submit(Puzzle.join(order))));}
         else if(puzzle.type==Puzzle.ODD){
             int size=puzzle.level==0?4:5;
@@ -51,13 +51,13 @@ final class PuzzleView extends LinearLayout {
         }else{
             if(puzzle.type==Puzzle.COLORS){LinearLayout strip=Ui.row(getContext());board.addView(strip);for(int v:puzzle.data){TextView t=Ui.bold(getContext(),"●",30,COLORS[v]);t.setGravity(Gravity.CENTER);strip.addView(t,new LinearLayout.LayoutParams(0,Ui.dp(getContext(),52),1));cells.add(t);}Ui.space(board,10);}
             int count=puzzle.type==Puzzle.COLORS?6:9;
-            for(int row=0;row<count/3;row++){LinearLayout line=Ui.row(getContext());board.addView(line);for(int col=0;col<3;col++){final int n=row*3+col;TextView b=button(puzzle.type==Puzzle.COLORS?"●":"",()->tap(n));b.setTextSize(38);b.setTextColor(COLORS[n%6]);b.setContentDescription(puzzle.type==Puzzle.COLORS?getResources().getStringArray(R.array.color_names)[n]:getContext().getString(R.string.tile,n+1));addCell(line,b,58);if(puzzle.type==Puzzle.TILES)cells.add(b);}}
+            for(int row=0;row<count/3;row++){LinearLayout line=Ui.row(getContext());board.addView(line);for(int col=0;col<3;col++){final int n=row*3+col;TextView b=button(puzzle.type==Puzzle.COLORS?"●":"",()->tap(n));Ui.textSize(b,38);b.setTextColor(COLORS[n%6]);b.setContentDescription(puzzle.type==Puzzle.COLORS?getResources().getStringArray(R.array.color_names)[n]:getContext().getString(R.string.tile,n+1));addCell(line,b,58);if(puzzle.type==Puzzle.TILES)cells.add(b);}}
             Ui.space(this,10);addView(button(s(R.string.replay),this::play));play();
         }
     }
     static final class Symbol extends androidx.appcompat.widget.AppCompatTextView {
         final float angle;
-        Symbol(Context context,String glyph,float angle){super(context);this.angle=angle;setText(glyph);setTextSize(28);setTextColor(Ui.LILAC);setGravity(Gravity.CENTER);setBackground(Ui.shape(Ui.CARD,Ui.dp(context,18)));setClickable(true);setFocusable(true);}
+        Symbol(Context context,String glyph,float angle){super(context);this.angle=angle;setText(glyph);Ui.textSize(this,28);setTextColor(Ui.LILAC);setGravity(Gravity.CENTER);setBackground(Ui.shape(Ui.CARD,Ui.dp(context,18)));setClickable(true);setFocusable(true);}
         @Override protected void onDraw(android.graphics.Canvas canvas){canvas.save();canvas.rotate(angle,getWidth()/2f,getHeight()/2f);super.onDraw(canvas);canvas.restore();}
     }
     void addCell(LinearLayout row,TextView t,int height){
@@ -94,7 +94,7 @@ final class PuzzleView extends LinearLayout {
         board.removeAllViews();LinearLayout row=new LinearLayout(getContext()){ {setChildrenDrawingOrderEnabled(true);} @Override protected int getChildDrawingOrder(int count,int position){int raised=dragFrom>=0?dragFrom:selected;if(raised<0)return position;if(position==count-1)return raised;return position>=raised?position+1:position;} };row.setGravity(Gravity.CENTER_VERTICAL);row.setClipChildren(false);board.setClipChildren(false);board.addView(row);
         for(int i=0;i<order.length;i++){final int pos=i;String value=puzzle.level==0?Integer.toString(order[i]):FACES[order[i]];
             TextView t=button(value,()->{if(complete||settling)return;if(selected<0){selected=pos;highlightOrder();}else swap(selected,pos);});
-            t.setTextSize(puzzle.level==0?25:27);t.setContentDescription(getContext().getString(R.string.tile_value,value));
+            Ui.textSize(t,puzzle.level==0?25:27);t.setContentDescription(getContext().getString(R.string.tile_value,value));
             t.setOnTouchListener(new OnTouchListener(){
                 float downX,downY;boolean dragging,abandoned;
                 @Override public boolean onTouch(View v,MotionEvent e){
