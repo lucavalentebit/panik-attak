@@ -19,6 +19,7 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
     static final String OPEN_TODAY="openToday";
     int destination=TODAY,settingsReturn=TODAY;
     String detailRoutine;
+    int routinePhase;
     int exportDays=0;String exportRoutine="";long exportDate;
     AppShell shell;
     androidx.activity.OnBackPressedCallback navigationBack;
@@ -40,7 +41,7 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
     Plan plan; int pendingEdit=-1;String pendingRoutine,pendingDelete;
     @Override public void onCreate(Bundle b){super.onCreate(b);
         HabitHistory.initialize(this);
-        if(b!=null){destination=b.getInt("page",TODAY);settingsReturn=b.getInt("settingsReturn",TODAY);detailRoutine=b.getString("detailRoutine");exportDays=b.getInt("exportDays",0);exportRoutine=b.getString("exportRoutine","");exportDate=b.getLong("exportDate",LocalDate.now().toEpochDay());}
+        if(b!=null){destination=b.getInt("page",TODAY);settingsReturn=b.getInt("settingsReturn",TODAY);detailRoutine=b.getString("detailRoutine");routinePhase=Math.max(0,Math.min(Plan.NAMES.length-1,b.getInt("routinePhase")));exportDays=b.getInt("exportDays",0);exportRoutine=b.getString("exportRoutine","");exportDate=b.getLong("exportDate",LocalDate.now().toEpochDay());}
         shell=new AppShell(this,b==null?null:b.getBundle("pageScroll"));
         navigationBack=new androidx.activity.OnBackPressedCallback(destination!=TODAY){@Override public void handleOnBackPressed(){goBack();}};
         getOnBackPressedDispatcher().addCallback(this,navigationBack);handleNavigationIntent(getIntent());
@@ -52,9 +53,9 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
         if(b!=null){pendingEdit=b.getInt("pendingEdit",-1);pendingRoutine=b.getString("pendingRoutine");pendingDelete=b.getString("pendingDelete");}}
     void handleNavigationIntent(Intent intent){if(intent.getBooleanExtra(OPEN_TODAY,false)){destination=TODAY;intent.removeExtra(OPEN_TODAY);}SequenceStatus.openFromNotification(this,intent);}
     @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);handleNavigationIntent(intent);if(!Store.prefs(this).getBoolean("ringing",false))render();}
-    @Override protected void onSaveInstanceState(Bundle out){shell.remember();out.putInt("page",destination);out.putInt("settingsReturn",settingsReturn);out.putString("detailRoutine",detailRoutine);out.putBundle("pageScroll",shell.positions);out.putInt("pendingEdit",pendingEdit);out.putString("pendingRoutine",pendingRoutine);out.putString("pendingDelete",pendingDelete);out.putInt("exportDays",exportDays);out.putString("exportRoutine",exportRoutine);out.putLong("exportDate",exportDate);super.onSaveInstanceState(out);}
+    @Override protected void onSaveInstanceState(Bundle out){shell.remember();out.putInt("page",destination);out.putInt("settingsReturn",settingsReturn);out.putString("detailRoutine",detailRoutine);out.putInt("routinePhase",routinePhase);out.putBundle("pageScroll",shell.positions);out.putInt("pendingEdit",pendingEdit);out.putString("pendingRoutine",pendingRoutine);out.putString("pendingDelete",pendingDelete);out.putInt("exportDays",exportDays);out.putString("exportRoutine",exportRoutine);out.putLong("exportDate",exportDate);super.onSaveInstanceState(out);}
     void navigate(int page){if(page<TODAY||page>HABITS)return;destination=page;render();}
-    void openRoutine(String id){if(!Store.exists(this,id))return;detailRoutine=id;Store.select(this,id);destination=DETAIL;if(shell!=null)render();}
+    void openRoutine(String id){if(!Store.exists(this,id))return;if(!id.equals(detailRoutine))routinePhase=0;detailRoutine=id;Store.select(this,id);destination=DETAIL;if(shell!=null)render();}
     void openSettings(){if(destination!=SETTINGS)settingsReturn=destination;destination=SETTINGS;render();}
     void goBack(){if(destination==SETTINGS){destination=settingsReturn;render();}else if(destination==DETAIL)navigate(ROUTINES);else if(destination!=TODAY)navigate(TODAY);}
     void chooseRoutine(List<TodayPage.Upcoming> routines){String[] names=new String[routines.size()];for(int i=0;i<names.length;i++)names[i]=routines.get(i).routine.name;Ui.dialog(this).setTitle(R.string.choose_routine).setItems(names,(d,n)->openRoutine(routines.get(n).routine.id)).setNegativeButton(R.string.cancel,null).show();}
@@ -138,14 +139,8 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
         LinearLayout clock=Ui.row(this);TextView time=Ui.text(this,Store.enabled(this)&&next>0?Store.time(next):String.format(Locale.ITALIAN,"%02d:%02d",plan.hour,plan.minute),66,Ui.INK);time.setLetterSpacing(-.05f);Ui.weighted(clock,time);TextView change=Ui.button(this,"Modifica ↗",0x25000000,Ui.INK,this::editTime);clock.addView(change);hero.addView(clock);Ui.space(hero,12);
         hero.addView(Ui.text(this,dayLabel()+"  ·  "+plan.count()+" richiami",13,Ui.INK));Ui.space(hero,21);
         hero.addView(Ui.button(this,Store.enabled(this)?"Metti in pausa · risolvi":"Attiva la sequenza  →",Ui.INK,Ui.LIME,()->{if(Store.enabled(this)){startActivity(ChallengeActivity.intent(this,ChallengeActivity.PAUSE));}else activate();}));page.addView(hero);Ui.space(page,26);
-        LinearLayout sequenceHeader=Ui.row(this);Ui.weighted(sequenceHeader,Ui.bold(this,"Dal sonno al panico",21,Ui.TEXT));TextView preview=Ui.text(this,"Anteprima ↗",12,Ui.LIME);preview.setPadding(6,14,0,14);preview.setOnClickListener(v->preview());sequenceHeader.addView(preview);page.addView(sequenceHeader);Ui.space(page,7);page.addView(Ui.text(this,"Quattro fasi. Sempre meno scuse.",13,Ui.MUTED));Ui.space(page,16);
-        int offset=0;
-        for(int phase=0;phase<4;phase++){
-            final int p=phase;LinearLayout card=Ui.row(this);card.setPadding(Ui.dp(this,16),Ui.dp(this,17),Ui.dp(this,16),Ui.dp(this,17));card.setBackground(Ui.shape(Ui.CARD,Ui.dp(this,21)));
-            TextView number=Ui.bold(this,phase==3?"ϟ":"0"+(phase+1),phase==3?27:15,Ui.COLORS[phase]);number.setGravity(Gravity.CENTER);number.setBackground(Ui.shape(0x14FFFFFF,Ui.dp(this,14)));card.addView(number,new LinearLayout.LayoutParams(Ui.dp(this,45),Ui.dp(this,45)));
-            LinearLayout words=Ui.column(this);words.setPadding(Ui.dp(this,14),0,0,0);words.addView(Ui.bold(this,Plan.NAMES[phase],16,Ui.TEXT));Ui.space(words,6);words.addView(Ui.text(this,timeAt(offset)+" – "+timeAt(offset+plan.durations[phase])+"  ·  "+plan.durations[phase]+" min",11,Ui.MUTED));Ui.weighted(card,words);
-            LinearLayout cadence=Ui.column(this);TextView interval=Ui.bold(this,cadence(phase),16,Ui.COLORS[phase]);interval.setGravity(Gravity.END);cadence.addView(interval);Ui.space(cadence,6);TextView edit=Ui.text(this,"modifica",10,Ui.MUTED);edit.setGravity(Gravity.END);cadence.addView(edit);card.addView(cadence,new LinearLayout.LayoutParams(Ui.dp(this,80),-2));card.setOnClickListener(v->editPhase(p));card.setContentDescription(Plan.NAMES[phase]+", "+cadence(phase));page.addView(card);Ui.space(page,9);offset+=plan.durations[phase];
-        }
+        LinearLayout sequenceHeader=Ui.row(this);Ui.weighted(sequenceHeader,Ui.bold(this,"Dal sonno al panico",21,Ui.TEXT));TextView preview=Ui.text(this,"Anteprima ↗",12,Ui.LIME);preview.setPadding(6,14,0,14);preview.setOnClickListener(v->preview());sequenceHeader.addView(preview);page.addView(sequenceHeader);Ui.space(page,7);page.addView(Ui.text(this,getString(R.string.phase_hint,plan.total()),13,Ui.MUTED));Ui.space(page,16);
+        PhaseCarousel.add(this,page);
         Ui.space(page,7);page.addView(Ui.text(this,"Panic Mode: suono pieno e vibrazione insistente.\nDopo "+timeAt(plan.total())+" non partono altri richiami; quello in corso continua finché lo risolvi.",12,Ui.MUTED));Ui.space(page,24);
         LinearLayout options=Ui.card(this,Ui.CARD);options.addView(Ui.bold(this,"A modo tuo",18,Ui.TEXT));Ui.space(options,18);
         options.addView(Ui.button(this,"Ripeti  ·  "+dayLabel(),0x12FFFFFF,Ui.TEXT,this::editDays));Ui.space(options,10);

@@ -5,6 +5,7 @@ import android.content.*;
 import android.os.*;
 import android.view.*;
 import android.widget.*;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.timepicker.*;
 import com.google.android.material.textfield.TextInputLayout;
 import java.util.*;
@@ -31,7 +32,7 @@ public class ConfigSmoke extends UpgradeSmoke {
         });waitForIdleSync();
     }
     @Override public void onStart(){
-        context=getTargetContext();var prefs=Store.prefs(context);Map<String,?> before=new HashMap<>(prefs.getAll());Bundle out=new Bundle();int code=Activity.RESULT_CANCELED;MainActivity a=null;final AlertDialog[] dialog={null};
+        context=getTargetContext();var prefs=Store.prefs(context);Map<String,?> before=new HashMap<>(prefs.getAll());Bundle out=new Bundle();int code=Activity.RESULT_CANCELED;MainActivity a=null;final BottomSheetDialog[] dialog={null};
         if(prefs.getBoolean("ringing",false)){out.putString("stream","SKIP: real alarm active\n");finish(code,out);return;}
         try{
             prefs.edit().putBoolean("enabled",false).commit();Scheduler.cancel(context);Store.save(context,new Plan());
@@ -39,10 +40,10 @@ public class ConfigSmoke extends UpgradeSmoke {
             runOnMainSync(()->dialog[0]=PhaseEditor.show(main,1));waitForIdleSync();
             View root=dialog[0].getWindow().getDecorView();View fixed=text(root,context.getString(R.string.fixed_mode));check(fixed!=null&&fixed.isEnabled(),"fixed available in regular phase");runOnMainSync(fixed::performClick);waitForIdleSync();
             choose(a,text(root,context.getString(R.string.at_time,"08:00")),9,0);
-            runOnMainSync(()->dialog[0].getButton(-1).performClick());check(dialog[0].isShowing()&&!Store.plan(context).fixed[1],"invalid fixed time blocks save");
+            runOnMainSync(()->dialog[0].findViewById(android.R.id.button1).performClick());check(dialog[0].isShowing()&&!Store.plan(context).fixed[1],"invalid fixed time blocks save");
             check(text(root,context.getString(R.string.invalid_fixed))!=null,"red validation message shown");
             choose(a,text(root,context.getString(R.string.at_time,"09:00")),8,10);
-            SystemClock.sleep(350);capture(root,"phase-fixed");runOnMainSync(()->dialog[0].getButton(-1).performClick());waitForIdleSync();
+            SystemClock.sleep(350);capture(root,"phase-fixed");runOnMainSync(()->dialog[0].findViewById(android.R.id.button1).performClick());waitForIdleSync();
             check(Store.plan(context).fixed[1]&&Store.plan(context).fixedMinutes[1]==490,"fixed time saved");
             runOnMainSync(()->dialog[0]=PhaseEditor.show(main,3));waitForIdleSync();root=dialog[0].getWindow().getDecorView();check(!text(root,context.getString(R.string.fixed_mode)).isEnabled(),"panic fixed disabled");runOnMainSync(()->dialog[0].dismiss());
             runOnMainSync(()->main.pickTime(R.string.first_alarm,450,m->{}));waitForIdleSync();

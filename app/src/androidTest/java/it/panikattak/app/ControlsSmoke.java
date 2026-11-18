@@ -7,6 +7,7 @@ import android.widget.*;
 import android.graphics.Bitmap;
 import java.util.*;
 import java.io.*;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.timepicker.MaterialTimePicker;
 
 /** Device touch regression for direct dragging and shared dialog controls. */
@@ -14,7 +15,7 @@ public class ControlsSmoke extends ConfigSmoke {
     void screenshot(String name)throws Exception{SystemClock.sleep(500);Bitmap bitmap=getUiAutomation().takeScreenshot();check(bitmap!=null,"screen captured");try(FileOutputStream out=new FileOutputStream(new File(context.getExternalFilesDir(null),name+".png"))){bitmap.compress(Bitmap.CompressFormat.PNG,100,out);}finally{bitmap.recycle();}}
     @Override void capture(View view,String name){SystemClock.sleep(350);super.capture(view,name);}
     @Override public void onStart(){
-        context=getTargetContext();var prefs=Store.prefs(context);Map<String,?> before=new HashMap<>(prefs.getAll());Bundle result=new Bundle();int code=Activity.RESULT_CANCELED;MainActivity main=null;ChallengeActivity challenge=null;final AlertDialog[] dialog={null};
+        context=getTargetContext();var prefs=Store.prefs(context);Map<String,?> before=new HashMap<>(prefs.getAll());Bundle result=new Bundle();int code=Activity.RESULT_CANCELED;MainActivity main=null;ChallengeActivity challenge=null;final AlertDialog[] dialog={null};final BottomSheetDialog[] sheet={null};
         if(prefs.getBoolean("ringing",false)){result.putString("stream","SKIP: real alarm active\n");finish(code,result);return;}
         try{
             for(Store.Routine routine:Store.routines(context))Store.setEnabled(context,routine.id,false);Scheduler.cancel(context);
@@ -28,7 +29,10 @@ public class ControlsSmoke extends ConfigSmoke {
             CheckedTextView radio=(CheckedTextView)dialog[0].getListView().getChildAt(3);check(radio.isChecked()&&radio.getCheckMarkTintList().getColorForState(new int[]{android.R.attr.state_enabled,android.R.attr.state_checked},0)==Ui.LIME,"radio accent");capture(dialog[0].getWindow().getDecorView(),"controls-puzzles");runOnMainSync(()->dialog[0].dismiss());
             runOnMainSync(()->dialog[0]=Ui.dialog(a).setTitle("La mia routine").setItems(new String[]{"Rinomina","Duplica","Elimina routine"},(d,n)->{}).setNegativeButton(R.string.cancel,null).show());waitForIdleSync();
             check(dialog[0].getListView().getDividerHeight()==Ui.dp(context,1),"action separators");check(dialog[0].getListView().getChildAt(0).getHeight()>=Ui.dp(context,52),"action touch target");capture(dialog[0].getWindow().getDecorView(),"controls-actions");runOnMainSync(()->dialog[0].dismiss());
-            runOnMainSync(()->dialog[0]=PhaseEditor.show(a,0));waitForIdleSync();check(dialog[0].getButton(-1).getCurrentTextColor()==Ui.INK,"phase editor uses shared controls");capture(dialog[0].getWindow().getDecorView(),"controls-phase");runOnMainSync(()->dialog[0].dismiss());
+            runOnMainSync(()->sheet[0]=PhaseEditor.show(a,0));waitForIdleSync();
+            TextView phaseSave=sheet[0].findViewById(android.R.id.button1);
+            check(phaseSave.getCurrentTextColor()==Ui.INK,"phase editor uses the primary action style");
+            capture(sheet[0].getWindow().getDecorView(),"controls-phase");runOnMainSync(()->sheet[0].dismiss());
             runOnMainSync(()->a.pickTime(R.string.first_alarm,480,m->{}));waitForIdleSync();MaterialTimePicker picker=(MaterialTimePicker)a.getSupportFragmentManager().findFragmentByTag("timePicker");
             var confirm=(com.google.android.material.button.MaterialButton)picker.getDialog().findViewById(com.google.android.material.R.id.material_timepicker_ok_button);
             check(confirm.getCurrentTextColor()==Ui.INK&&confirm.getBackground() instanceof android.graphics.drawable.RippleDrawable,"time picker confirm style");capture(picker.getDialog().getWindow().getDecorView(),"controls-time");runOnMainSync(picker::dismissAllowingStateLoss);waitForIdleSync();
@@ -45,7 +49,7 @@ public class ControlsSmoke extends ConfigSmoke {
             runOnMainSync(()->view.submit("wrong"));check(!view.complete&&Arrays.equals(view.order,view.puzzle.data),"wrong answer still resets puzzle");
             capture(challenge,"controls-order");result.putString("stream","PASS: "+checks+" controls and direct-drag checks.\n");code=Activity.RESULT_OK;
         }catch(Throwable e){result.putString("stream","FAIL after "+checks+": "+e+"\n");}
-        finally{if(dialog[0]!=null)runOnMainSync(()->dialog[0].dismiss());if(challenge!=null){final Activity c=challenge;runOnMainSync(c::finish);}if(main!=null){final Activity a=main;runOnMainSync(a::finish);}waitForIdleSync();restore(before);}
+        finally{if(sheet[0]!=null)runOnMainSync(()->sheet[0].dismiss());if(dialog[0]!=null)runOnMainSync(()->dialog[0].dismiss());if(challenge!=null){final Activity c=challenge;runOnMainSync(c::finish);}if(main!=null){final Activity a=main;runOnMainSync(a::finish);}waitForIdleSync();restore(before);}
         finish(code,result);
     }
 }

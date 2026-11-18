@@ -64,6 +64,12 @@
     <string name="panic_interval">Il Panic Mode richiede un intervallo.</string>
     <string name="invalid_fixed">Orario fisso fuori dalla fase: controlla tutti i richiami fissi. L’inizio è incluso, la fine esclusa.</string>
     <string name="invalid_duration">Ogni fase deve durare da 1 a 120 minuti. Le fasi restano consecutive.</string>
+    <string name="phase_hint">%1$d min in totale · Scorri per vedere le fasi</string>
+    <string name="phase_window">%1$s – %2$s · %3$d min</string>
+    <string name="phase_position">%1$d di %2$d</string>
+    <string name="phase_previous">Fase precedente</string>
+    <string name="phase_next">Fase successiva</string>
+    <string name="phase_edit">Modifica intervallo</string>
     <string name="phase_times_hint">Gli orari delle fasi successive si aggiornano insieme. La durata massima di ciascuna fase è 120 minuti.</string>
     <string name="escalating">Difficoltà crescente</string><string name="escalating_hint">Facoltativa: aumenta la difficoltà dopo i richiami ignorati. Si azzera a ogni nuova sequenza.</string>
     <string name="puzzle_explanation">La sfida semplice spegne il richiamo corrente. Per fermare la mattina, mettere in pausa o modificare una sequenza attiva serve la sfida difficile del tipo scelto. Trova la posata chiede sempre una foto di una posata casuale, con Matematica difficile come alternativa.</string>
