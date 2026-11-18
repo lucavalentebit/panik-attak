@@ -1,11 +1,16 @@
 package it.panikattak.app;
-import android.app.AlertDialog;
+import android.animation.ValueAnimator;
+import androidx.core.view.ViewCompat;
+import androidx.core.widget.NestedScrollView;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.view.View;
 import android.widget.*;
 final class PhaseEditor {
-    static AlertDialog show(MainActivity a,int phase){
+    static BottomSheetDialog show(MainActivity a,int phase){
+        String routine = Store.selected(a);
         Plan candidate=Store.plan(a);
-        LinearLayout content=Ui.column(a);content.setPadding(Ui.dp(a,18),Ui.dp(a,10),Ui.dp(a,18),Ui.dp(a,10));
+        LinearLayout content=Ui.column(a);content.setPadding(Ui.dp(a,20),Ui.dp(a,22),Ui.dp(a,20),Ui.dp(a,20));
         TextView error=Ui.text(a,"",13,Ui.RED);
         TextView start=Ui.button(a,"",Ui.CARD,Ui.TEXT,()->{}),end=Ui.button(a,"",Ui.CARD,Ui.TEXT,()->{}),fixedTime=Ui.button(a,"",Ui.CARD,Ui.LIME,()->{});
         RadioGroup modes=new RadioGroup(a);modes.setOrientation(LinearLayout.HORIZONTAL);
@@ -41,8 +46,57 @@ final class PhaseEditor {
         content.addView(start);Ui.space(content,8);content.addView(end);Ui.space(content,8);content.addView(Ui.text(a,a.getString(R.string.phase_times_hint),12,Ui.MUTED));content.addView(modes);
         if(phase==3)content.addView(Ui.text(a,a.getString(R.string.panic_interval),12,Ui.MUTED));
         content.addView(intervalField);content.addView(fixedTime);content.addView(error);update.run();
-        ScrollView scroll=new ScrollView(a);scroll.addView(content);
-        AlertDialog dialog=Ui.dialog(a).setTitle(Plan.NAMES[phase]).setView(scroll).setNegativeButton(R.string.cancel,null).setPositiveButton(R.string.save,null).create();
-        dialog.setOnShowListener(v->{Ui.styleDialog(dialog);dialog.getButton(-1).setOnClickListener(b->{interval.clearFocus();candidate.intervals[phase]=interval.getValue();if(!candidate.valid()){error.setText(R.string.invalid_fixed);return;}a.plan=candidate;a.save();dialog.dismiss();});});dialog.show();dialog.getWindow().setBackgroundDrawable(Ui.shape(Ui.CARD,Ui.dp(a,24)));return dialog;
+        BottomSheetDialog sheet = new BottomSheetDialog(a);
+        boolean animate = ValueAnimator.areAnimatorsEnabled();
+        sheet.setDismissWithAnimation(animate);
+        sheet.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+        sheet.getBehavior().setSkipCollapsed(true);
+        if (!animate) sheet.getBehavior().setDraggable(false);
+
+        Ui.space(content, 12);
+        TextView title = Ui.bold(a, Plan.NAMES[phase], 22, Ui.TEXT);
+        ViewCompat.setAccessibilityHeading(title, true);
+        content.addView(title, 0);
+        View headingSpace = new View(a);
+        content.addView(headingSpace, 1, new LinearLayout.LayoutParams(1, Ui.dp(a, 16)));
+        error.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+
+        LinearLayout actions = Ui.row(a);
+        TextView cancel = Ui.button(a, a.getString(R.string.cancel), 0x12FFFFFF, Ui.TEXT, sheet::cancel);
+        Ui.weighted(actions, cancel);
+        actions.addView(new View(a), new LinearLayout.LayoutParams(Ui.dp(a, 8), 1));
+        TextView save = Ui.button(a, a.getString(R.string.save), Ui.LIME, Ui.INK, () -> {
+            interval.clearFocus();
+            candidate.intervals[phase] = interval.getValue();
+            if (!candidate.valid()) {
+                error.setText(R.string.invalid_fixed);
+                return;
+            }
+            if (!routine.equals(Store.selected(a)) || !Store.exists(a, routine)) {
+                sheet.cancel();
+                return;
+            }
+            sheet.findViewById(android.R.id.button1).setEnabled(false);
+            a.plan = candidate;
+            a.save();
+            sheet.cancel();
+        });
+        save.setId(android.R.id.button1);
+        Ui.weighted(actions, save);
+        content.addView(actions);
+
+        NestedScrollView scroll = new NestedScrollView(a);
+        ViewCompat.setAccessibilityPaneTitle(scroll, Plan.NAMES[phase]);
+        scroll.addView(content);
+        sheet.setContentView(scroll);
+        sheet.setOnDismissListener(dialog -> {
+            if (a.destination != MainActivity.DETAIL || !routine.equals(a.detailRoutine)) return;
+            View opener = a.shell.body.findViewWithTag(PhaseCarousel.editTag(phase));
+            if (opener != null && a.routinePhase == phase) opener.requestFocus();
+        });
+        sheet.getWindow().setDimAmount(.36f);
+        if (!animate) sheet.getWindow().setWindowAnimations(0);
+        sheet.show();
+        return sheet;
     }
 }

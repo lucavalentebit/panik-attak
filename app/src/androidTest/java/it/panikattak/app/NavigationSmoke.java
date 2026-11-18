@@ -25,6 +25,19 @@ public class NavigationSmoke extends ConfigSmoke {
         runOnMainSync(()->{if(landscape)previous.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);else previous.recreate();});
         Activity replacement=waitForMonitorWithTimeout(monitor,5000);removeMonitor(monitor);check(replacement instanceof MainActivity&&replacement!=previous,"new activity created");screen=(MainActivity)replacement;settle();
     }
+    void swipePhase(PhaseCarousel carousel, float fraction, int endAction){
+        runOnMainSync(()->{
+            long down=SystemClock.uptimeMillis();
+            float start=carousel.getWidth()*.75f,y=Ui.dp(screen,24);
+            for(int i=0;i<=3;i++){
+                int action=i==0?MotionEvent.ACTION_DOWN:i==3?endAction:MotionEvent.ACTION_MOVE;
+                MotionEvent event=MotionEvent.obtain(down,down+100*i,action,start-carousel.getWidth()*fraction*i/3,y,0);
+                carousel.dispatchTouchEvent(event);
+                event.recycle();
+            }
+        });
+        settle();
+    }
     @Override public void onStart(){
         context=getTargetContext();var prefs=Store.prefs(context);Map<String,?> before=new HashMap<>(prefs.getAll());Bundle out=new Bundle();int code=Activity.RESULT_CANCELED;ChallengeActivity gate=null;
         if(prefs.getBoolean("ringing",false)){out.putString("stream","SKIP: existing alarm active.\n");finish(code,out);return;}
@@ -45,10 +58,20 @@ public class NavigationSmoke extends ConfigSmoke {
             ActivityMonitor gateMonitor=addMonitor(ChallengeActivity.class.getName(),null,false);runOnMainSync(()->screen.editTime());gate=(ChallengeActivity)waitForMonitorWithTimeout(gateMonitor,3000);removeMonitor(gateMonitor);
             check(gate!=null&&gate.routine.equals(later)&&gate.challenge.level==2,"active editor still uses target routine hard puzzle");final ChallengeActivity challenge=gate;runOnMainSync(()->challenge.apply("wrong"));check(!gate.isFinishing(),"wrong answer does not unlock editing");runOnMainSync(gate::finish);settle();gate=null;
             check(Store.plan(context,later).hour==late.hour&&screen.destination==MainActivity.DETAIL,"cancelled gate preserves configuration and route");
+            PhaseCarousel carousel=(PhaseCarousel)screen.shell.body.findViewWithTag(PhaseCarousel.editTag(0)).getParent().getParent();
+            swipePhase(carousel,.18f,MotionEvent.ACTION_UP);
+            check(screen.routinePhase==0&&carousel.getScrollX()==0,"short swipe returns to the original phase");
+            swipePhase(carousel,.55f,MotionEvent.ACTION_CANCEL);
+            check(screen.routinePhase==0&&carousel.getScrollX()==0,"cancelled swipe returns to the original phase");
+            swipePhase(carousel,.55f,MotionEvent.ACTION_UP);
+            check(screen.routinePhase==1&&carousel.getScrollX()==carousel.getWidth(),"swipe settles on the adjacent phase");
+            View nextPhase=description(screen.shell.body,context.getString(R.string.phase_next));
+            runOnMainSync(nextPhase::performClick);settle();
+            check(screen.routinePhase==2&&text(screen.shell.body,context.getString(R.string.phase_position,3,4))!=null,"button and counter select the same phase");
             runOnMainSync(()->screen.shell.scroll.scrollTo(0,Ui.dp(screen,350)));settle();int scroll=screen.shell.scroll.getScrollY();check(scroll>0,"detail scrolls independently");
             settings();check(screen.destination==MainActivity.SETTINGS&&screen.shell.body.findViewWithTag(AppSettings.STATUS)!=null,"settings controls are available");capture(screen,"pages-settings");
             recreate(false);check(screen.destination==MainActivity.SETTINGS&&screen.shell.body.findViewWithTag(AppSettings.STATUS)!=null,"Settings controls survive recreation");back();
-            check(screen.destination==MainActivity.DETAIL&&screen.detailRoutine.equals(later),"Back restores exact routine after recreation");check(Math.abs(screen.shell.scroll.getScrollY()-scroll)<5,"detail scroll restored");
+            check(screen.destination==MainActivity.DETAIL&&screen.detailRoutine.equals(later)&&screen.routinePhase==2,"Back restores exact routine and phase after recreation");check(Math.abs(screen.shell.scroll.getScrollY()-scroll)<5,"detail scroll restored");
             recreate(false);check(screen.destination==MainActivity.DETAIL&&Math.abs(screen.shell.scroll.getScrollY()-scroll)<5,"detail route and scroll survive recreation directly");
             capture(screen,"pages-detail");back();check(screen.destination==MainActivity.ROUTINES,"detail Back returns to list");back();check(screen.destination==MainActivity.TODAY,"list Back returns to Today");
             tab(MainActivity.HABITS);check(text(screen.shell.body,context.getString(R.string.habits_empty_hint))!=null&&screen.countdown==null,"Habits is an honest empty state without countdown loop");capture(screen,"pages-habits");settings();back();check(screen.destination==MainActivity.HABITS,"Settings Back returns to originating tab");
