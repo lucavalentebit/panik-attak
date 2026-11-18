@@ -28,8 +28,8 @@ final class HabitHistory {
         @Override public void onCreate(SQLiteDatabase db){db.execSQL("CREATE TABLE events (id TEXT PRIMARY KEY, session TEXT NOT NULL, start INTEGER NOT NULL, wall INTEGER NOT NULL, data TEXT NOT NULL)");db.execSQL("CREATE INDEX session_start ON events(start)");}
         @Override public void onUpgrade(SQLiteDatabase db,int from,int to){throw new IllegalStateException("Unsupported history schema");}
     }
-    static JSONObject json(HabitStats.Event e){try{return new JSONObject().put("id",e.id).put("session",e.session).put("routine",e.routine).put("name",e.name).put("kind",e.kind).put("purpose",e.purpose).put("zone",e.zone).put("boot",e.boot).put("config",e.config).put("start",e.start).put("scheduled",e.scheduled).put("wall",e.wall).put("elapsed",e.elapsed).put("first",e.first).put("last",e.last).put("phase",e.phase).put("type",e.type).put("level",e.level).put("expected",e.expected).put("ordinal",e.ordinal).put("offset",e.offset).put("count",e.count).put("covered",e.covered);}catch(JSONException impossible){throw new IllegalStateException(impossible);}}
-    static HabitStats.Event decode(String value){try{JSONObject o=new JSONObject(value);HabitStats.Event e=new HabitStats.Event();e.id=o.getString("id");e.session=o.getString("session");e.routine=o.getString("routine");e.name=o.optString("name");e.kind=o.getString("kind");e.purpose=o.getString("purpose");e.zone=o.getString("zone");e.boot=o.getString("boot");e.config=o.optString("config");e.start=o.getLong("start");e.scheduled=o.getLong("scheduled");e.wall=o.getLong("wall");e.elapsed=o.getLong("elapsed");e.first=o.getLong("first");e.last=o.getLong("last");e.phase=o.getInt("phase");e.type=o.getInt("type");e.level=o.getInt("level");e.expected=o.getInt("expected");e.ordinal=o.getInt("ordinal");e.offset=o.getInt("offset");e.count=o.getInt("count");e.covered=o.getBoolean("covered");return e;}catch(JSONException invalid){throw new IllegalStateException("Unreadable history event",invalid);}}
+    static JSONObject json(HabitStats.Event e){try{return new JSONObject().put("id",e.id).put("session",e.session).put("routine",e.routine).put("name",e.name).put("kind",e.kind).put("purpose",e.purpose).put("zone",e.zone).put("boot",e.boot).put("config",e.config).put("start",e.start).put("scheduled",e.scheduled).put("wall",e.wall).put("elapsed",e.elapsed).put("first",e.first).put("last",e.last).put("phase",e.phase).put("phaseName",e.phaseName).put("type",e.type).put("level",e.level).put("expected",e.expected).put("ordinal",e.ordinal).put("offset",e.offset).put("count",e.count).put("covered",e.covered);}catch(JSONException impossible){throw new IllegalStateException(impossible);}}
+    static HabitStats.Event decode(String value){try{JSONObject o=new JSONObject(value);HabitStats.Event e=new HabitStats.Event();e.id=o.getString("id");e.session=o.getString("session");e.routine=o.getString("routine");e.name=o.optString("name");e.kind=o.getString("kind");e.purpose=o.getString("purpose");e.zone=o.getString("zone");e.boot=o.getString("boot");e.config=o.optString("config");e.start=o.getLong("start");e.scheduled=o.getLong("scheduled");e.wall=o.getLong("wall");e.elapsed=o.getLong("elapsed");e.first=o.getLong("first");e.last=o.getLong("last");e.phase=o.getInt("phase");e.phaseName=o.optString("phaseName");e.type=o.getInt("type");e.level=o.getInt("level");e.expected=o.getInt("expected");e.ordinal=o.getInt("ordinal");e.offset=o.getInt("offset");e.count=o.getInt("count");e.covered=o.getBoolean("covered");return e;}catch(JSONException invalid){throw new IllegalStateException("Unreadable history event",invalid);}}
     static ContentValues values(HabitStats.Event e){ContentValues v=new ContentValues();v.put("id",e.id);v.put("session",e.session);v.put("start",e.start);v.put("wall",e.wall);v.put("data",json(e).toString());return v;}
     static void insert(SQLiteDatabase db,HabitStats.Event e,boolean accumulate){
         if(accumulate){try(Cursor previous=db.query("events",new String[]{"data"},"id=?",new String[]{e.id},null,null,null)){if(previous.moveToFirst())e.count+=decode(previous.getString(0)).count;}db.insertWithOnConflict("events",null,values(e),SQLiteDatabase.CONFLICT_REPLACE);}
@@ -43,7 +43,7 @@ final class HabitHistory {
         List<Plan.Event> planned=plan.events(Instant.ofEpochMilli(entry.start).atZone(zone).toLocalDate(),zone);e.first=planned.isEmpty()?entry.start:planned.get(0).at;e.last=planned.isEmpty()?entry.at:planned.get(planned.size()-1).at;e.expected=planned.size();e.ordinal=-1;
         for(int n=0;n<planned.size();n++)if(planned.get(n).at==entry.at)e.ordinal=n;
         e.covered=e.ordinal>=0&&Store.prefs(c).getLong(SINCE,e.wall)<=e.first&&Store.prefs(c).getLong("history.lastGap",0)<e.first;
-        if(unlocked(c)){e.name=Store.name(c,entry.routine);e.config=plan.hour+":"+plan.minute+";days="+plan.days+";durations="+Arrays.toString(plan.durations)+";intervals="+Arrays.toString(plan.intervals)+";fixed="+Arrays.toString(plan.fixed)+";times="+Arrays.toString(plan.fixedMinutes)+";puzzle="+plan.puzzleType+";escalating="+plan.escalating;}
+        if(unlocked(c)){e.name=Store.name(c,entry.routine);if(!entry.phaseName.equals(AlarmQueue.legacyName(entry.phase)))e.phaseName=entry.phaseName;e.config=plan.hour+":"+plan.minute+";days="+plan.days+";durations="+Arrays.toString(plan.durations)+";intervals="+Arrays.toString(plan.intervals)+";fixed="+Arrays.toString(plan.fixed)+";times="+Arrays.toString(plan.fixedMinutes)+";puzzle="+plan.puzzleType+";escalating="+plan.escalating;}
         else e.covered=false;
         return e;
     }
@@ -51,11 +51,11 @@ final class HabitHistory {
         if(!enabled(c))return;
         boolean privateStore=unlocked(c);
         try(Database helper=new Database(c,!privateStore)){
-            if(!privateStore){e.name="";e.config="";e.covered=false;}
+            if(!privateStore){e.name="";e.phaseName="";e.config="";e.covered=false;}
             insert(helper.getWritableDatabase(),e,accumulate);
         }catch(RuntimeException failure){
             failed(c,failure);
-            if(privateStore)try(Database outbox=new Database(c,true)){e.name="";e.config="";e.covered=false;insert(outbox.getWritableDatabase(),e,accumulate);}catch(RuntimeException ignored){}
+            if(privateStore)try(Database outbox=new Database(c,true)){e.name="";e.phaseName="";e.config="";e.covered=false;insert(outbox.getWritableDatabase(),e,accumulate);}catch(RuntimeException ignored){}
         }
     }
     static void record(Context c,AlarmQueue.Entry e,String kind,String purpose){
@@ -69,7 +69,11 @@ final class HabitHistory {
         // Only the type/level is needed by history, never an answer or actual challenge contents.
         return fromRun(c,run);
     }
-    static AlarmQueue.Entry fromRun(Context c,SequenceStatus.Run run){return new AlarmQueue.Entry(run.routine,run.lastAt,run.start,run.phase,false,Puzzle.create(Store.plan(c,run.routine).puzzleType,0,"").encode());}
+    static AlarmQueue.Entry fromRun(Context c,SequenceStatus.Run run){
+        Plan plan=Store.plan(c,run.routine);
+        int puzzle=plan.puzzleFor(plan.phaseAt(run.start,run.lastAt));
+        return new AlarmQueue.Entry(run.routine,run.lastAt,run.start,run.phase,run.phaseName,false,Puzzle.create(puzzle,0,"").encode());
+    }
     static void runEvent(Context c,SequenceStatus.Run run,String kind){try{record(c,fromRun(c,run),kind,"recall");}catch(RuntimeException failure){failed(c,failure);}}
     static void runningEvent(Context c,String id,String kind,String purpose){try{record(c,running(c,id),kind,purpose);}catch(RuntimeException failure){failed(c,failure);}}
     static void gate(Context c,String id,long start,String purpose,String kind,boolean test){

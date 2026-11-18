@@ -31,7 +31,7 @@ public class AlarmActivity extends Activity {
         int phase=Store.prefs(this).getInt("activePhase",0);int accent=Ui.COLORS[phase];
         LinearLayout page=Ui.shell(this,true);page.addView(Ui.bold(this,"ϟ  PANIK ATTAK",13,Ui.TEXT));Ui.space(page,20);
         page.addView(Ui.bold(this,Store.name(this,routine),22,Ui.LIME));waitingLabel=Ui.text(this,"",13,Ui.MUTED);page.addView(waitingLabel);updateWaiting();Ui.space(page,12);
-        TextView badge=Ui.bold(this,Plan.NAMES[phase],15,accent);badge.setGravity(Gravity.CENTER);page.addView(badge);Ui.space(page,12);
+        TextView badge=Ui.bold(this,AlarmQueue.activePhaseName(this,phase),15,accent);badge.setGravity(Gravity.CENTER);page.addView(badge);Ui.space(page,12);
         TextView clock=Ui.text(this,Store.time(activeAt),58,Ui.TEXT);clock.setGravity(Gravity.CENTER);page.addView(clock);Ui.space(page,12);
         page.addView(Ui.text(this,getString(R.string.alarm_hint),14,Ui.MUTED));Ui.space(page,18);
         TextView dismiss=Ui.button(this,getString(R.string.dismiss_current),Ui.LIME,Ui.INK,()->{Scheduler.dismissCurrent(this,routine,activeAt,puzzle,solvedAnswer);refresh();});dismiss.setVisibility(View.GONE);

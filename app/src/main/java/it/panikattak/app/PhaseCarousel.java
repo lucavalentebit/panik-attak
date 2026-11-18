@@ -17,6 +17,7 @@ import java.util.ArrayList;
 // The carousel is constructed with a live routine and never inflated from XML.
 @SuppressLint("ViewConstructor")
 final class PhaseCarousel extends FrameLayout {
+    static final String ADD_TAG = "addInterval";
     private static final long SNAP_MS = 200;
     private static final PathInterpolator EASE_OUT = new PathInterpolator(0.2f, 0f, 0f, 1f);
 
@@ -28,6 +29,7 @@ final class PhaseCarousel extends FrameLayout {
     private float downX, downY;
     private int width, dragStart, anchor, pointerId;
     private boolean dragging;
+    private int revealFrom;
 
     static void add(MainActivity activity, LinearLayout page) {
         LinearLayout controls = Ui.row(activity);
@@ -49,12 +51,15 @@ final class PhaseCarousel extends FrameLayout {
         super(activity);
         this.activity = activity;
         this.counter = counter;
+        revealFrom = activity.revealFromPhase;
+        activity.revealFromPhase = -1;
         ViewConfiguration configuration = ViewConfiguration.get(activity);
         touchSlop = configuration.getScaledTouchSlop();
         minimumFling = Math.max(configuration.getScaledMinimumFlingVelocity(), Ui.dp(activity, 450));
         setLayoutDirection(LAYOUT_DIRECTION_LTR);
-        for (int phase = 0; phase < Plan.NAMES.length; phase++) {
-            addView(card(phase), new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        String[] puzzles = activity.getResources().getStringArray(R.array.puzzle_types);
+        for (int phase = 0; phase < activity.plan.phaseCount(); phase++) {
+            addView(card(phase,puzzles), new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         }
         previous = arrow("‹", R.string.phase_previous, -1);
         next = arrow("›", R.string.phase_next, 1);
@@ -71,11 +76,11 @@ final class PhaseCarousel extends FrameLayout {
         return button;
     }
 
-    private View card(int phase) {
+    private View card(int phase, String[] puzzles) {
         Plan plan = activity.plan;
         int offset = plan.offset(phase);
         LinearLayout card = Ui.card(activity, Ui.CARD);
-        TextView title = Ui.bold(activity, Plan.NAMES[phase], 22, Ui.COLORS[phase]);
+        TextView title = Ui.bold(activity, plan.phaseName(phase), 22, Ui.COLORS[plan.phaseLevel(phase)]);
         ViewCompat.setAccessibilityHeading(title, true);
         card.addView(title);
         Ui.space(card, 10);
@@ -84,6 +89,9 @@ final class PhaseCarousel extends FrameLayout {
                 plan.durations[phase]), 14, Ui.MUTED));
         Ui.space(card, 10);
         card.addView(Ui.bold(activity, activity.cadence(phase), 15, Ui.TEXT));
+        Ui.space(card, 6);
+        String puzzle = puzzles[plan.puzzleFor(phase)];
+        card.addView(Ui.text(activity, activity.getString(R.string.state_puzzle_value, puzzle), 13, Ui.MUTED));
         Ui.space(card, 16);
         TextView edit = Ui.button(activity, activity.getString(R.string.phase_edit),
                 0x12FFFFFF, Ui.TEXT, () -> {
@@ -120,7 +128,17 @@ final class PhaseCarousel extends FrameLayout {
         if (width != newWidth) {
             width = newWidth;
             stopSnap();
-            scrollTo(activity.routinePhase * width, 0);
+            int selected = activity.routinePhase;
+            boolean reveal = revealFrom >= 0 && revealFrom < getChildCount() && ValueAnimator.areAnimatorsEnabled();
+            boolean adjacent = reveal && Math.abs(revealFrom - selected) == 1;
+            scrollTo((adjacent ? revealFrom : selected) * width, 0);
+            if (adjacent) post(() -> { if (isAttachedToWindow() && !dragging) goTo(activity.routinePhase); });
+            else if (reveal) {
+                View card = getChildAt(selected);
+                card.setAlpha(0f);
+                card.animate().alpha(1f).setDuration(SNAP_MS).setInterpolator(EASE_OUT).start();
+            }
+            revealFrom = -1;
         }
     }
 
@@ -257,6 +275,11 @@ final class PhaseCarousel extends FrameLayout {
         stopSnap();
         scrollTo(activity.routinePhase * width, 0);
         releaseVelocity();
+        for (int i = 0; i < getChildCount(); i++) {
+            View card=getChildAt(i);
+            card.animate().cancel();
+            card.setAlpha(1f);
+        }
         dragging = false;
         super.onDetachedFromWindow();
     }

@@ -46,6 +46,16 @@ public class ConfigSmoke extends UpgradeSmoke {
             SystemClock.sleep(350);capture(root,"phase-fixed");runOnMainSync(()->dialog[0].findViewById(android.R.id.button1).performClick());waitForIdleSync();
             check(Store.plan(context).fixed[1]&&Store.plan(context).fixedMinutes[1]==490,"fixed time saved");
             runOnMainSync(()->dialog[0]=PhaseEditor.show(main,3));waitForIdleSync();root=dialog[0].getWindow().getDecorView();check(!text(root,context.getString(R.string.fixed_mode)).isEnabled(),"panic fixed disabled");runOnMainSync(()->dialog[0].dismiss());
+            runOnMainSync(()->main.openRoutine(Store.DEFAULT));waitForIdleSync();
+            View add=main.shell.body.findViewWithTag(PhaseCarousel.ADD_TAG);
+            check(add!=null&&add.isEnabled(),"detail exposes add interval");
+            runOnMainSync(()->dialog[0]=PhaseEditor.show(main,Store.plan(context).phaseCount()));waitForIdleSync();
+            runOnMainSync(()->{
+                edit(dialog[0].getWindow().getDecorView()).setText("17");
+                dialog[0].findViewById(android.R.id.button1).performClick();
+            });
+            SystemClock.sleep(450);waitForIdleSync();
+            check(Store.plan(context).phaseCount()==5&&Store.plan(context).durations[4]==17&&main.routinePhase==4,"add interval saves chosen duration and reveals the new page");
             runOnMainSync(()->main.pickTime(R.string.first_alarm,450,m->{}));waitForIdleSync();
             MaterialTimePicker picker=(MaterialTimePicker)a.getSupportFragmentManager().findFragmentByTag("timePicker");capture(picker.getDialog().getWindow().getDecorView(),"time-dial");runOnMainSync(picker::dismissAllowingStateLoss);
             out.putString("stream","PASS: "+checks+" configuration checks: dial, keyboard fallback, invalid fixed time blocked, valid fixed time saved, Panic Mode restriction.\n");code=Activity.RESULT_OK;

@@ -7,7 +7,7 @@ import java.util.*;
 /** Pure history projection. No alarm state or UI is changed when calculating statistics. */
 final class HabitStats {
     static final class Event {
-        String id="",session="",routine="",name="",kind="",purpose="recall",zone="UTC",boot="",config="";
+        String id="",session="",routine="",name="",kind="",purpose="recall",zone="UTC",boot="",config="",phaseName="";
         long start,scheduled,wall,elapsed,first,last;
         int phase,type,level,expected,ordinal,offset,count=1;
         boolean covered=true;
@@ -76,6 +76,7 @@ final class HabitStats {
         final List<Long> responses=new ArrayList<>(),stops=new ArrayList<>();
         final List<List<Long>> weekdays=new ArrayList<>();
         final int[] phases=new int[4];
+        final Map<String,Integer> customPhases=new LinkedHashMap<>();
         int complete,panic,partial,running,finished,paused,interrupted,explicit;
         Summary(List<Session> sessions){
             for(int n=0;n<7;n++)weekdays.add(new ArrayList<>());
@@ -84,7 +85,10 @@ final class HabitStats {
                 if(s.outcome.equals("finished"))finished++;if(s.outcome.equals("pause"))paused++;if(s.outcome.equals("interrupted"))interrupted++;
                 if(!s.complete())continue;complete++;if(s.panic)panic++;
                 Long first=s.firstDelay();if(first!=null){responses.add(first);weekdays.get(s.date().getDayOfWeek().getValue()-1).add(first);}
-                Long stop=s.stopDelay();if(stop!=null){stops.add(stop);explicit++;phases[s.phase]++;}
+                Long stop=s.stopDelay();if(stop!=null){stops.add(stop);explicit++;
+                    String phaseName=s.ending.phaseName;
+                    if(!phaseName.isEmpty())customPhases.merge(phaseName,1,Integer::sum);
+                    else phases[s.phase]++;}
             }
         }
     }

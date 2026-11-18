@@ -50,6 +50,21 @@ public class RoutineSmoke extends UpgradeSmoke {
                 check(!prefs.getBoolean("ringing",false),"queue empty after final recall");
             });waitForIdleSync();
             check(Store.delete(context,third)&&Store.routines(context).size()==2,"paused routine deleted independently");
+            Plan saved=Store.plan(context,second);
+            saved.customStates.put("work","Scrivania");
+            saved.statePuzzles.put("work",Puzzle.ORDER);
+            saved.append("work",18);
+            String intervalId=saved.intervalIds[4];
+            Store.save(context,second,saved);
+            Plan restored=Store.plan(context,second);
+            check(restored.phaseCount()==5&&restored.durations[4]==18&&restored.intervalIds[4].equals(intervalId),"custom interval persists by stable identity");
+            check(restored.puzzleFor(4)==Puzzle.ORDER&&restored.puzzleFor(0)==Puzzle.COLORS,"per-state puzzle and routine fallback survive reload");
+            runOnMainSync(()->{
+                AlarmQueue.offer(context,second,start+300000,start,4,false);
+                AlarmQueue.Entry entry=AlarmQueue.read(context).get(0);
+                check(entry.phaseName.equals("Scrivania")&&entry.phase==0&&Puzzle.decode(entry.puzzle).type==Puzzle.ORDER,"delivered custom state uses its puzzle and gentle intensity");
+                AlarmQueue.clear(context);
+            });
             // Deliver two simultaneous recalls through Android's real alarm broadcast path.
             runOnMainSync(()->{AlarmQueue.clear(context);prefs.edit().remove("skip").remove(Store.key(second,"skip")).putBoolean("vibration",false).putBoolean(Store.key(second,"vibration"),false).commit();Store.setEnabled(context,Store.DEFAULT,true);Store.setEnabled(context,second,true);});
             long at=System.currentTimeMillis()+4000;JSONArray batch=new JSONArray().put(new JSONObject().put("id",Store.DEFAULT).put("at",at).put("start",at).put("phase",0)).put(new JSONObject().put("id",second).put("at",at).put("start",at).put("phase",0));
