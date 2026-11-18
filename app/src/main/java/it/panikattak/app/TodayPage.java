@@ -32,8 +32,8 @@ final class TodayPage {
             page.addView(Ui.bold(a,a.getString(R.string.running_count,runs.size()),18,Ui.TEXT));Ui.space(page,12);
             for(var run:runs){
                 LinearLayout card=Ui.card(a,Ui.CARD);card.addView(Ui.bold(a,Store.name(a,run.routine),18,Ui.LIME));Ui.space(card,8);
-                card.addView(Ui.text(a,Plan.NAMES[run.phase]+" · "+(run.ringing?a.getString(R.string.recall_pending):a.getString(R.string.recall_at,Store.time(run.nextAt))),14,Ui.MUTED));Ui.space(card,14);
-                card.addView(Ui.button(a,a.getString(run.ringing?R.string.open_puzzle:R.string.open_routine),0x12FFFFFF,Ui.TEXT,()->{if(run.ringing)a.startActivity(new Intent(a,AlarmActivity.class));else a.openRoutine(run.routine);}));page.addView(card);Ui.space(page,12);
+                card.addView(Ui.text(a,run.currentName+" · "+(run.ringing?a.getString(R.string.recall_pending):run.nextAt==0?a.getString(R.string.sequence_ends_at,Store.time(run.endAt)):a.getString(R.string.recall_at,Store.time(run.nextAt))),14,Ui.MUTED));Ui.space(card,14);
+                card.addView(Ui.button(a,a.getString(run.ringing?R.string.open_puzzle:R.string.open_routine),0x12FFFFFF,Ui.TEXT,()->{if(run.ringing)a.startActivity(new Intent(a,AlarmActivity.class));else a.openRoutine(run.routine,run.currentPhase);}));page.addView(card);Ui.space(page,12);
             }
             Ui.space(page,12);
         }

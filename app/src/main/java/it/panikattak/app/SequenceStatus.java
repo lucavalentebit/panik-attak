@@ -16,35 +16,45 @@ final class SequenceStatus {
         channel.setDescription(c.getString(R.string.sequence_channel_description));channel.setSound(null,null);channel.enableVibration(false);channel.setShowBadge(false);c.getSystemService(NotificationManager.class).createNotificationChannel(channel);
     }
     static final class Run {
-        final String routine;final long start,lastAt;final int phase;
-        long nextAt;boolean ringing;
-        Run(String routine,long start,long lastAt,int phase){this.routine=routine;this.start=start;this.lastAt=lastAt;this.phase=phase;}
+        final String routine,phaseName;final long start,lastAt;final int phase;
+        long nextAt,endAt;int currentPhase;String currentName;boolean ringing;
+        Run(String routine,long start,long lastAt,int phase,String phaseName){
+            this.routine=routine;this.start=start;this.lastAt=lastAt;this.phase=phase;this.phaseName=phaseName;
+        }
     }
     static LinkedHashMap<String,Run> read(Context c){
         LinkedHashMap<String,Run> runs=new LinkedHashMap<>();
-        try{JSONArray a=new JSONArray(Store.prefs(c).getString(KEY,"[]"));for(int n=0;n<a.length();n++){JSONObject o=a.getJSONObject(n);Run r=new Run(o.getString("routine"),o.getLong("start"),o.getLong("lastAt"),o.getInt("phase"));runs.put(r.routine,r);}}
+        try{JSONArray a=new JSONArray(Store.prefs(c).getString(KEY,"[]"));for(int n=0;n<a.length();n++){JSONObject o=a.getJSONObject(n);Run r=new Run(o.getString("routine"),o.getLong("start"),o.getLong("lastAt"),o.getInt("phase"),o.optString("phaseName",AlarmQueue.legacyName(o.getInt("phase"))));runs.put(r.routine,r);}}
         catch(JSONException e){Log.e("PanikAttak","Cannot restore sequence status",e);}
         return runs;
     }
     static void write(Context c,Collection<Run> runs){
-        JSONArray a=new JSONArray();try{for(Run r:runs)a.put(new JSONObject().put("routine",r.routine).put("start",r.start).put("lastAt",r.lastAt).put("phase",r.phase));}catch(JSONException e){throw new IllegalStateException(e);}
+        JSONArray a=new JSONArray();try{for(Run r:runs)a.put(new JSONObject().put("routine",r.routine).put("start",r.start).put("lastAt",r.lastAt).put("phase",r.phase).put("phaseName",r.phaseName));}catch(JSONException e){throw new IllegalStateException(e);}
         String value=a.toString();if(!value.equals(Store.prefs(c).getString(KEY,"[]")))Store.prefs(c).edit().putString(KEY,value).commit();
     }
     static void delivered(Context c,String id,long start,long at,int phase){
-        try{var runs=read(c);Run prior=runs.get(id);if(prior!=null&&prior.start!=start)HabitHistory.runEvent(c,prior,"interrupted");runs.put(id,new Run(id,start,at,phase));write(c,runs.values());}
+        Plan plan=Store.plan(c,id);
+        delivered(c,id,start,at,plan.phaseLevel(phase),plan.phaseName(phase));
+    }
+    static void delivered(Context c,String id,long start,long at,int phase,String name){
+        try{var runs=read(c);Run prior=runs.get(id);if(prior!=null&&prior.start!=start)HabitHistory.runEvent(c,prior,"interrupted");runs.put(id,new Run(id,start,at,phase,name));write(c,runs.values());}
         catch(RuntimeException e){Log.e("PanikAttak","Unable to record sequence notification state",e);}
     }
     static List<Run> current(Context c,long now){
         var runs=read(c);List<AlarmQueue.Entry> queue=AlarmQueue.read(c);
         // Also covers updating the app while an older-version alarm is already ringing.
-        for(var entry:queue)if(!entry.test)runs.put(entry.routine,new Run(entry.routine,entry.start,entry.at,entry.phase));
+        for(var entry:queue)if(!entry.test)runs.put(entry.routine,new Run(entry.routine,entry.start,entry.at,entry.phase,entry.phaseName));
         Iterator<Run> iterator=runs.values().iterator();while(iterator.hasNext()){
             Run r=iterator.next();
             if(!Store.enabled(c,r.routine)||Store.skipped(c,r.routine)==r.start){HabitHistory.runningEvent(c,r.routine,"interrupted","recall");iterator.remove();continue;}
             for(var entry:queue)if(!entry.test&&entry.routine.equals(r.routine)&&entry.start==r.start)r.ringing=true;
-            Plan.Event next=Store.plan(c,r.routine).next(Math.max(now,r.lastAt),Store.skipped(c,r.routine),ZoneId.systemDefault());
+            Plan plan=Store.plan(c,r.routine);
+            r.endAt=r.start+plan.total()*60_000L;
+            r.currentPhase=plan.phaseAt(r.start,now);
+            r.currentName=r.ringing?r.phaseName:plan.phaseName(r.currentPhase);
+            Plan.Event next=plan.next(Math.max(now,r.lastAt),Store.skipped(c,r.routine),ZoneId.systemDefault());
             if(next!=null&&next.start==r.start)r.nextAt=next.at;
-            if(!r.ringing&&r.nextAt==0){HabitHistory.runningEvent(c,r.routine,"interrupted","recall");iterator.remove();}
+            if(!r.ringing&&r.endAt<=now){HabitHistory.runningEvent(c,r.routine,"interrupted","recall");iterator.remove();}
         }
         write(c,runs.values());return new ArrayList<>(runs.values());
     }
@@ -57,19 +67,31 @@ final class SequenceStatus {
         List<Run> waiting=new ArrayList<>();for(Run r:current(c,now))if(!r.ringing)waiting.add(r);
         if(waiting.isEmpty()||!AppSettings.showStatus(c)){manager.cancel(NOTIFICATION_ID);return;}
         ensureChannel(c);
-        waiting.sort(Comparator.comparingLong(r->r.nextAt));Run first=waiting.get(0);
-        String title=waiting.size()==1?c.getString(R.string.sequence_running,Store.name(c,first.routine)):c.getString(R.string.sequences_running,waiting.size());
-        String text=c.getString(R.string.sequence_next,Plan.NAMES[first.phase],Store.time(first.nextAt));
+        waiting.sort(Comparator.comparingLong(r->r.endAt));
+        Run first=waiting.get(0);
+        boolean single=waiting.size()==1;
+        String title=single?c.getString(R.string.sequence_running,Store.name(c,first.routine)):c.getString(R.string.sequences_running,waiting.size());
         Intent open=new Intent(c,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra(MainActivity.OPEN_TODAY,true);
-        if(waiting.size()==1)open.putExtra(ROUTINE,first.routine).putExtra("statusStart",first.start);
+        if(single)open.putExtra(ROUTINE,first.routine).putExtra("statusStart",first.start);
         PendingIntent intent=PendingIntent.getActivity(c,21,open,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        Notification.InboxStyle lines=new Notification.InboxStyle();long expires=now;
-        for(Run r:waiting){lines.addLine(c.getString(R.string.sequence_waiting_line,Store.name(c,r.routine),Store.time(r.nextAt)));expires=Math.max(expires,r.start+Store.plan(c,r.routine).total()*60000L);}
         Notification publicVersion=new Notification.Builder(c,CHANNEL).setSmallIcon(R.drawable.ic_alarm).setContentTitle(c.getString(R.string.sequence_generic)).setContentText(c.getString(R.string.sequence_open)).setOngoing(true).build();
-        Notification notification=new Notification.Builder(c,CHANNEL).setSmallIcon(R.drawable.ic_alarm).setContentTitle(title).setContentText(text).setStyle(lines)
-            .setCategory(Notification.CATEGORY_STATUS).setOngoing(true).setAutoCancel(false).setOnlyAlertOnce(true).setShowWhen(false)
-            .setVisibility(AppSettings.showNames(c)?Notification.VISIBILITY_PUBLIC:Notification.VISIBILITY_PRIVATE).setPublicVersion(publicVersion).setContentIntent(intent)
-            .setTimeoutAfter(Math.max(1,expires-now)).build();
+        Notification.Builder builder=new Notification.Builder(c,CHANNEL).setSmallIcon(R.drawable.ic_alarm).setContentTitle(title)
+            .setCategory(Notification.CATEGORY_STATUS).setOngoing(true).setAutoCancel(false).setOnlyAlertOnce(true)
+            .setVisibility(AppSettings.showNames(c)?Notification.VISIBILITY_PUBLIC:Notification.VISIBILITY_PRIVATE).setPublicVersion(publicVersion).setContentIntent(intent);
+        long expires=first.endAt;
+        if(single){
+            // System UI renders every tick. This path schedules no task, alarm, or wake lock.
+            builder.setContentText(c.getString(R.string.sequence_remaining))
+                .setWhen(first.endAt).setShowWhen(true).setUsesChronometer(true).setChronometerCountDown(true);
+        }else{
+            Notification.InboxStyle lines=new Notification.InboxStyle();
+            for(Run r:waiting){
+                lines.addLine(c.getString(R.string.sequence_end_line,Store.name(c,r.routine),Store.time(r.endAt)));
+                expires=Math.max(expires,r.endAt);
+            }
+            builder.setStyle(lines).setShowWhen(false);
+        }
+        Notification notification=builder.setTimeoutAfter(Math.max(1,expires-now)).build();
         // Requests the strongest ordinary ongoing behavior. Android 14+ still permits
         // individual swipes while unlocked; no fake call/media style or repost loop.
         notification.flags|=Notification.FLAG_NO_CLEAR;
@@ -77,7 +99,7 @@ final class SequenceStatus {
     }
     static void openFromNotification(MainActivity activity,Intent intent){
         String id=intent.getStringExtra(ROUTINE);if(id==null)return;
-        for(Run run:current(activity,System.currentTimeMillis()))if(run.routine.equals(id)&&run.start==intent.getLongExtra("statusStart",-1)){activity.openRoutine(id);break;}
+        for(Run run:current(activity,System.currentTimeMillis()))if(run.routine.equals(id)&&run.start==intent.getLongExtra("statusStart",-1)){activity.openRoutine(id,run.currentPhase);break;}
         intent.removeExtra(ROUTINE);intent.removeExtra("statusStart");
     }
 }

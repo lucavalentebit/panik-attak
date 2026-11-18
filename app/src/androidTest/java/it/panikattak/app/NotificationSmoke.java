@@ -32,6 +32,9 @@ public class NotificationSmoke extends ConfigSmoke {
             check(status(100)==null,"enabled future recalls alone do not create running status");
             runOnMainSync(()->{SequenceStatus.delivered(context,Store.DEFAULT,start,start,0);SequenceStatus.refresh(context);});settle();
             check(status(100)!=null,"status displayed between recalls");Notification n=status(100).getNotification();
+            check(n.when==start+p.total()*60_000L&&n.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER)
+                &&n.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN),"system chronometer counts down to the end of the whole routine");
+            check(n.extras.getCharSequence(Notification.EXTRA_TEXT).toString().equals(context.getString(R.string.sequence_remaining)),"remaining time is labeled");
             check((n.flags&Notification.FLAG_ONGOING_EVENT)!=0&&(n.flags&Notification.FLAG_NO_CLEAR)!=0,"ongoing and clear-all protection requested");
             check((n.flags&Notification.FLAG_AUTO_CANCEL)==0,"tap does not automatically cancel");check(n.fullScreenIntent==null,"status does not wake full screen");
             check(manager.getNotificationChannel(SequenceStatus.CHANNEL).getImportance()==NotificationManager.IMPORTANCE_LOW&&manager.getNotificationChannel(SequenceStatus.CHANNEL).getSound()==null,"status channel silent");
@@ -54,6 +57,8 @@ public class NotificationSmoke extends ConfigSmoke {
             runOnMainSync(()->{Puzzle puzzle=Store.activePuzzle(context);check(Scheduler.dismissCurrent(context,Store.DEFAULT,start,puzzle,puzzle.solution()),"recall dismissal accepted");});settle();check(status(100)!=null,"solving recall keeps status until subsequent recalls");
             runOnMainSync(()->{AlarmQueue.offer(context,Store.DEFAULT,start,start,0,false);Puzzle hard=Store.newPuzzle(context,0,2);check(Scheduler.dismissMorning(context,Store.DEFAULT,start,false,hard,hard.solution()),"stop occurrence accepted");});settle();check(status(100)==null&&SequenceStatus.current(context,System.currentTimeMillis()).isEmpty(),"stop occurrence removes status");
             prefs.edit().remove("skip").commit();
+            runOnMainSync(()->{SequenceStatus.delivered(context,Store.DEFAULT,start,start,0);SequenceStatus.refresh(context,start+p.total()*60_000L-500);});
+            check(SequenceStatus.read(context).size()==1,"routine status persists between the last recall and the routine end");
             runOnMainSync(()->{SequenceStatus.delivered(context,Store.DEFAULT,start,start,0);SequenceStatus.refresh(context,start+24*60*60*1000L);});settle();check(status(100)==null,"finished past occurrence removed");
             runOnMainSync(()->{AlarmQueue.offer(context,Store.DEFAULT,start,start,3,false);SequenceStatus.refresh(context,start+24*60*60*1000L);});check(SequenceStatus.read(context).size()==1,"last unresolved alarm remains running past end");
             runOnMainSync(()->{AlarmQueue.clear(context);prefs.edit().remove(SequenceStatus.KEY).commit();AlarmQueue.offer(context,Store.DEFAULT,start,start,3,true);SequenceStatus.refresh(context);});check(SequenceStatus.read(context).isEmpty(),"test alarm does not create a real running occurrence");
