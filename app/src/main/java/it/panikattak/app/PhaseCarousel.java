@@ -1,6 +1,7 @@
 package it.panikattak.app;
 
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -13,6 +14,8 @@ import android.widget.TextView;
 import androidx.core.view.ViewCompat;
 import java.util.ArrayList;
 
+// The carousel is constructed with a live routine and never inflated from XML.
+@SuppressLint("ViewConstructor")
 final class PhaseCarousel extends FrameLayout {
     private static final long SNAP_MS = 200;
     private static final PathInterpolator EASE_OUT = new PathInterpolator(0.2f, 0f, 0f, 1f);
