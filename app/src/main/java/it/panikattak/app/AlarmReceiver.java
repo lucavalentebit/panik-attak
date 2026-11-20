@@ -17,5 +17,6 @@ public class AlarmReceiver extends BroadcastReceiver {
             Scheduler.schedule(c,at);
         }
         try{Scheduler.syncSound(c,true);}catch(Exception e){Log.e("PanikAttak","Unable to start alarm",e);}
+        if(test)TodayWidget.refresh(c);
     }
 }

@@ -38,6 +38,10 @@
     <string name="choose_routine">Scegli una routine</string>
     <string name="choose_routine_hint">Attiva una routine per vedere qui il prossimo risveglio.</string>
     <string name="no_active_routines">Nessuna routine attiva</string>
+    <string name="good_weekend">Buon weekend!</string>
+    <string name="widget_no_attack">Nessun attack</string>
+    <string name="widget_next">Prossimo richiamo</string>
+    <string name="widget_alarm_time">%1$s · %2$s</string>
     <string name="see_routines">Vedi tutte le routine ↗</string>
     <string name="also_scheduled">Anche in programma</string>
     <string name="more_routines">+%1$d routine allo stesso orario</string>

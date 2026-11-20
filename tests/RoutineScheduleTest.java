@@ -28,6 +28,14 @@ public class RoutineScheduleTest {
             LocalDate day=LocalDate.of(2026,10,25);next=RoutineSchedule.next(Arrays.asList(weekendSource),day.atStartOfDay(z).toInstant().toEpochMilli(),z);
             check(Instant.ofEpochMilli(next.get(0).event.at).atZone(z).getHour()==9,"local time restored in timezone");
         }
+        LocalDate saturdayDate=friday.plusDays(1),sunday=friday.plusDays(2),monday=friday.plusDays(3);
+        check(!RoutineSchedule.freeWeekend(friday,false,null),"Friday keeps the standard empty status");
+        check(RoutineSchedule.freeWeekend(saturdayDate,false,sunday),"Sunday recall leaves Saturday free");
+        check(RoutineSchedule.freeWeekend(sunday,false,monday),"Monday recall leaves Sunday free");
+        check(RoutineSchedule.freeWeekend(sunday,false,null),"paused routines leave Sunday free");
+        check(!RoutineSchedule.freeWeekend(sunday,false,sunday),"weekend alarms take precedence");
+        check(!RoutineSchedule.freeWeekend(saturdayDate,true,monday),"an ongoing sequence takes precedence after midnight");
+        check(!RoutineSchedule.freeWeekend(monday,false,null),"Monday restores the standard empty status");
         System.out.println("PASS: "+checks+" multi-routine scheduling checks");
     }
 }

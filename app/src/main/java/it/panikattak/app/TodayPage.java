@@ -1,5 +1,6 @@
 package it.panikattak.app;
 
+import android.content.Context;
 import android.content.Intent;
 import android.view.Gravity;
 import android.widget.*;
@@ -12,23 +13,35 @@ final class TodayPage {
         final Store.Routine routine;final Plan.Event event;
         Upcoming(Store.Routine routine,Plan.Event event){this.routine=routine;this.event=event;}
     }
-    static List<Upcoming> upcoming(MainActivity a,long now){
+    static List<Upcoming> upcoming(Context context,long now){
+        return upcoming(context,now,ZoneId.systemDefault());
+    }
+    static List<Upcoming> upcoming(Context context,long now,ZoneId zone){
         List<Upcoming> result=new ArrayList<>();
-        for(var routine:Store.routines(a))if(Store.enabled(a,routine.id)){
-            Plan.Event event=Store.plan(a,routine.id).next(now,Store.skipped(a,routine.id),ZoneId.systemDefault());
+        for(var routine:Store.routines(context))if(Store.enabled(context,routine.id)){
+            Plan.Event event=Store.plan(context,routine.id).next(now,Store.skipped(context,routine.id),zone);
             if(event!=null)result.add(new Upcoming(routine,event));
         }
         result.sort(Comparator.comparingLong((Upcoming u)->u.event.at).thenComparing(u->u.routine.name));return result;
     }
     static String date(long at){
-        LocalDate day=Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault()).toLocalDate();
-        return day.equals(LocalDate.now())?"Oggi":day.equals(LocalDate.now().plusDays(1))?"Domani":day.format(DateTimeFormatter.ofPattern("EEE d MMM",Locale.ITALIAN));
+        ZoneId zone=ZoneId.systemDefault();
+        return date(Instant.ofEpochMilli(at).atZone(zone).toLocalDate(),LocalDate.now(zone));
+    }
+    static String date(LocalDate day,LocalDate today){
+        return day.equals(today)?"Oggi":day.equals(today.plusDays(1))?"Domani":day.format(DateTimeFormatter.ofPattern("EEE d MMM",Locale.ITALIAN));
     }
     static void add(MainActivity a,LinearLayout page){
+        long now=System.currentTimeMillis();
+        ZoneId zone=ZoneId.systemDefault();
+        LocalDate today=Instant.ofEpochMilli(now).atZone(zone).toLocalDate();
         page.addView(Ui.bold(a,a.getString(R.string.page_today),28,Ui.TEXT));Ui.space(page,6);
-        page.addView(Ui.text(a,LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE d MMMM",Locale.ITALIAN)),14,Ui.MUTED));Ui.space(page,24);
-        List<SequenceStatus.Run> runs=SequenceStatus.current(a,System.currentTimeMillis());
+        page.addView(Ui.text(a,today.format(DateTimeFormatter.ofPattern("EEEE d MMMM",Locale.ITALIAN)),14,Ui.MUTED));Ui.space(page,24);
+        List<SequenceStatus.Run> runs=SequenceStatus.current(a,now);
         if(!runs.isEmpty()){
+            long nextEnd=Long.MAX_VALUE;
+            for(var run:runs)if(!run.ringing)nextEnd=Math.min(nextEnd,run.endAt);
+            if(a.visible&&nextEnd!=Long.MAX_VALUE)a.countdownHandler.postDelayed(a.todayRefresh,nextEnd-now);
             page.addView(Ui.bold(a,a.getString(R.string.running_count,runs.size()),18,Ui.TEXT));Ui.space(page,12);
             for(var run:runs){
                 LinearLayout card=Ui.card(a,Ui.CARD);card.addView(Ui.bold(a,Store.name(a,run.routine),18,Ui.LIME));Ui.space(card,8);
@@ -37,10 +50,20 @@ final class TodayPage {
             }
             Ui.space(page,12);
         }
-        List<Upcoming> next=upcoming(a,System.currentTimeMillis());
+        List<Upcoming> next=upcoming(a,now,zone);
+        LocalDate nextDay=next.isEmpty()?null:Instant.ofEpochMilli(next.get(0).event.at).atZone(zone).toLocalDate();
+        boolean freeWeekend=RoutineSchedule.freeWeekend(today,!runs.isEmpty(),nextDay);
+        if(freeWeekend&&!next.isEmpty()){
+            page.addView(weekendCard(a));
+            Ui.space(page,12);
+        }
         if(next.isEmpty()){
-            LinearLayout card=Ui.card(a,Ui.CARD);card.addView(Ui.bold(a,a.getString(R.string.no_active_routines),22,Ui.TEXT));Ui.space(card,10);
-            card.addView(Ui.text(a,a.getString(R.string.choose_routine_hint),14,Ui.MUTED));Ui.space(card,20);
+            LinearLayout card=freeWeekend?weekendCard(a):Ui.card(a,Ui.CARD);
+            if(!freeWeekend){
+                card.addView(Ui.bold(a,a.getString(R.string.no_active_routines),22,Ui.TEXT));Ui.space(card,10);
+                card.addView(Ui.text(a,a.getString(R.string.choose_routine_hint),14,Ui.MUTED));
+            }
+            Ui.space(card,20);
             card.addView(Ui.button(a,a.getString(R.string.choose_routine),Ui.LIME,Ui.INK,()->a.navigate(MainActivity.ROUTINES)));page.addView(card);
         }else{
             Upcoming first=next.get(0);List<Upcoming> tied=new ArrayList<>();for(var item:next)if(item.event.at==first.event.at)tied.add(item);
@@ -66,5 +89,11 @@ final class TodayPage {
             warning.addView(Ui.text(a,"Consenti i permessi necessari per ricevere i richiami anche a schermo spento.",13,Ui.MUTED));Ui.space(warning,14);
             warning.addView(Ui.button(a,"Controlla permessi ↗",0x12FFFFFF,Ui.TEXT,a::settings));page.addView(warning);
         }
+    }
+
+    private static LinearLayout weekendCard(MainActivity a){
+        LinearLayout card=Ui.card(a,Ui.CARD);
+        card.addView(Ui.bold(a,a.getString(R.string.good_weekend),22,Ui.TEXT));
+        return card;
     }
 }

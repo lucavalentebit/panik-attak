@@ -24,7 +24,10 @@ final class Scheduler {
         JSONArray batch=new JSONArray();try{for(var d:due)batch.put(new JSONObject().put("id",d.id).put("at",d.event.at).put("start",d.event.start).put("phase",d.event.phase));}catch(JSONException e){throw new IllegalStateException(e);}
         Plan.Event event=due.get(0).event;
         Store.prefs(c).edit().putLong("next",event.at).putString("nextBatch",batch.toString()).apply();set(c,event.at,event.start,event.phase,false);return event;
-        }finally{SequenceStatus.refresh(c);}
+        }finally{
+            SequenceStatus.refresh(c);
+            TodayWidget.refresh(c);
+        }
     }
     static void set(Context c,long at,long start,int phase,boolean test){
         PendingIntent show=PendingIntent.getActivity(c,10,new Intent(c,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);

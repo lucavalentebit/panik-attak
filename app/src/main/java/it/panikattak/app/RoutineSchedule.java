@@ -1,5 +1,7 @@
 package it.panikattak.app;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 
@@ -21,5 +23,11 @@ final class RoutineSchedule {
             if(event.at==earliest)result.add(new Due(source.id,event));
         }
         return result;
+    }
+
+    static boolean freeWeekend(LocalDate today, boolean hasRunningSequence, LocalDate nextRecall) {
+        DayOfWeek day = today.getDayOfWeek();
+        return (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY)
+                && !hasRunningSequence && !today.equals(nextRecall);
     }
 }

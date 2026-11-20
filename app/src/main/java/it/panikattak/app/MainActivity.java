@@ -29,6 +29,7 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
     TextView countdown;long countdownAt;boolean visible;
     final Handler countdownHandler=new Handler(Looper.getMainLooper());
     final Runnable countdownTick=()->updateCountdown();
+    final Runnable todayRefresh=()->render();
     static String remaining(long at,long now){long seconds=Math.max(0,(at-now+999)/1000);return String.format(Locale.ITALIAN,"%02d:%02d:%02d",seconds/3600,(seconds/60)%60,seconds%60);}
     void updateCountdown(){
         countdownHandler.removeCallbacks(countdownTick);if(countdown==null)return;
@@ -38,7 +39,7 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
         countdown.setContentDescription(countdownAt>0?"Tempo alla prossima sveglia: "+countdown.getText():"Routine in pausa");
         if(visible&&countdownAt>0)countdownHandler.postDelayed(countdownTick,1000-now%1000);
     }
-    @Override protected void onPause(){visible=false;countdownHandler.removeCallbacks(countdownTick);if(watchingUpdates){unregisterReceiver(pageUpdates);watchingUpdates=false;}super.onPause();}
+    @Override protected void onPause(){visible=false;countdownHandler.removeCallbacks(countdownTick);countdownHandler.removeCallbacks(todayRefresh);if(watchingUpdates){unregisterReceiver(pageUpdates);watchingUpdates=false;}super.onPause();}
     Plan plan; int pendingEdit=-1;String pendingRoutine,pendingDelete;
     @Override public void onCreate(Bundle b){super.onCreate(b);
         HabitHistory.initialize(this);
@@ -104,7 +105,15 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
     @android.annotation.SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override public void onResume(){super.onResume();visible=true;
         HabitHistory.maintenance(this);
-        if(!watchingUpdates){if(Build.VERSION.SDK_INT>=33)registerReceiver(pageUpdates,new IntentFilter("it.panikattak.REFRESH"),Context.RECEIVER_NOT_EXPORTED);else registerReceiver(pageUpdates,new IntentFilter("it.panikattak.REFRESH"));watchingUpdates=true;}
+        if(!watchingUpdates){
+            IntentFilter filter=new IntentFilter("it.panikattak.REFRESH");
+            filter.addAction(Intent.ACTION_DATE_CHANGED);
+            filter.addAction(Intent.ACTION_TIME_CHANGED);
+            filter.addAction(Intent.ACTION_TIMEZONE_CHANGED);
+            if(Build.VERSION.SDK_INT>=33)registerReceiver(pageUpdates,filter,Context.RECEIVER_NOT_EXPORTED);
+            else registerReceiver(pageUpdates,filter);
+            watchingUpdates=true;
+        }
         if(Store.prefs(this).getBoolean("ringing",false)){startActivity(new Intent(this,AlarmActivity.class));return;}Scheduler.schedule(this);render();}
     void activate(){activate(Store.selected(this));}
     void activate(String routine){
@@ -128,6 +137,7 @@ public class MainActivity extends androidx.appcompat.app.AppCompatActivity {
     }
     void render(){
         if(shell==null)return;
+        countdownHandler.removeCallbacks(todayRefresh);
         countdownHandler.removeCallbacks(countdownTick);countdown=null;countdownAt=0;
         if(destination<TODAY||destination>SETTINGS)destination=TODAY;
         if(destination==DETAIL&&!Store.exists(this,detailRoutine))destination=ROUTINES;
